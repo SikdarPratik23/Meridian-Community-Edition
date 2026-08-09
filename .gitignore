@@ -1,0 +1,84 @@
+# ─────────────────────────────────────────────────────────────
+#  Meridian — repo .gitignore
+#  Goal: commit the source + docs, ignore build output, deps,
+#  machine-local settings, and (importantly) your personal data.
+# ─────────────────────────────────────────────────────────────
+
+# Dependencies (reinstalled from package-lock.json — never committed)
+node_modules/
+
+# Build / bundler output
+dist/
+dist-ssr/
+build/
+dev-dist/            # vite-plugin-pwa dev service-worker output
+.vite/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# ── Personal data (this is a private journal — keep entries OUT of Git) ──
+# Exported backups produced by Data → Export all:
+meridian-backup-*.json
+# The sync server's shared journal file + its default data folder:
+meridian-journal.json
+server/data/
+# Your chosen storage folder is a machine-local setting, not source:
+server/storage-config.json
+# Raw SQLite snapshots, if you ever dump the IndexedDB store to a file:
+*.sqlite
+*.sqlite3
+atlas.db
+# The on-disk journal database(s) — your personal data, never commit these.
+# Covers the whole folder plus any .db file and SQLite's sidecar/WAL files, and
+# the .crswap swap file the File System Access API leaves next to a linked file.
+database/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.crswap
+# Spreadsheet that the project brief notes is unused/personal:
+*.xlsx
+
+# Editor / IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS cruft
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Local AI-assistant settings (not needed by the app)
+.claude/
+.gemini/
+
+# ── graphify code-map output ──
+# Keep the readable report + interactive graph (the README links to them),
+# but ignore the regenerable AST cache and graphify's internal bookkeeping.
+graphify-out/cache/
+graphify-out/.graphify_root
+graphify-out/.graphify_labels.json
+
+# End-to-end run output — regenerated on every `npm run test:e2e`.
+atlas/e2e/screenshots/

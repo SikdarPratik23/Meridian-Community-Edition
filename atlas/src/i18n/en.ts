@@ -1,0 +1,273 @@
+/**
+ * The English catalogue — and, because every other locale is typed against it,
+ * the single source of truth for what a translatable string IS in Meridian.
+ *
+ * Keys are FLAT with dotted names (`nav.timeline`, `editor.save`). Flat keeps the
+ * key type a plain union — a typo in `t('editor.saev')` is a compile error, and
+ * an editor can autocomplete the whole catalogue — while the dots still group the
+ * app by area when you read the file. Nested objects would need a path type and
+ * lose both.
+ *
+ * Rules for adding a string here:
+ *   - No emoji and no leading/trailing punctuation-as-decoration. The component
+ *     owns its 📍 and its arrows; the catalogue owns words. That way one label can
+ *     be reused in a button, a tooltip and an aria-label without fighting.
+ *   - Anything variable goes in as `{placeholder}`, never string concatenation —
+ *     word order differs between languages, and Bengali in particular puts the
+ *     postposition after the value.
+ *   - Counted things get two keys (`common.oneEntry` / `common.nEntries`) instead
+ *     of an `n === 1` ternary at the call site. Bengali doesn't inflect the noun
+ *     for number, so its "plural" form is simply the same word — which is exactly
+ *     why the *catalogue*, not the component, has to decide.
+ *
+ * Every string here was harvested from the components rather than invented, so
+ * translating a key actually changes what a user sees.
+ */
+
+export const en = {
+  // ── Navigation & window chrome ──
+  'nav.home': 'Home',
+  'nav.timeline': 'Timeline',
+  'nav.explore': 'Explore',
+  // `nav.trips` / `nav.search` are no longer tab labels (Explore replaced both
+  // as a destination) but still name the two halves inside it.
+  'nav.trips': 'Trips',
+  'nav.search': 'Search',
+  'nav.data': 'Data',
+  'nav.settings': 'Settings',
+  'nav.newEntry': 'New entry',
+  'nav.hide': 'Hide',
+  'nav.showList': 'Show the list',
+  'nav.tagline': 'field journal',
+  'nav.openSettings': 'Open settings',
+
+  // ── Capture FAB ──
+  'capture.write': 'Write',
+  'capture.photo': 'Photo',
+  'capture.voice': 'Voice Note',
+  'capture.label': 'Quick capture',
+
+  // ── Buttons and words that recur everywhere ──
+  'common.save': 'Save',
+  'common.cancel': 'Cancel',
+  'common.close': 'Close',
+  'common.delete': 'Delete',
+  'common.edit': 'Edit',
+  'common.back': 'Back',
+  'common.clear': 'Clear',
+  'common.undo': 'Undo',
+  'common.open': 'Open',
+  'common.add': 'Add',
+  'common.done': 'Done',
+  'common.retry': 'Try again',
+  'common.yes': 'Yes',
+  'common.no': 'No',
+  'common.on': 'on',
+  'common.off': 'off',
+  'common.loading': 'Loading…',
+  'common.saving': 'Saving…',
+  'common.now': 'Now',
+  'common.reset': 'Reset',
+  'common.oneEntry': '1 entry',
+  'common.nEntries': '{count} entries',
+  'common.onePlace': '1 place',
+  'common.nPlaces': '{count} places',
+
+  // ── Welcome screen ──
+  'welcome.stillUp': 'Still up',
+  'welcome.goodMorning': 'Good morning',
+  'welcome.goodAfternoon': 'Good afternoon',
+  'welcome.goodEvening': 'Good evening',
+  'welcome.greetingWithName': '{greeting}, {name}',
+  'welcome.addName': 'Add your name',
+  'welcome.editName': 'Edit your name',
+  'welcome.askName': 'What should we call you?',
+  'welcome.firstEntry': 'Your first entry starts the map.',
+  'welcome.pinned': 'pinned',
+  'welcome.since': 'since {month}',
+  'welcome.almanac': 'Geographer’s almanac',
+  'welcome.anotherFact': 'Show another fact',
+  'welcome.holidays': 'Holidays & festivals',
+  'welcome.poi': 'Places of interest nearby',
+  'welcome.todaysFocus': 'Today’s focus',
+  'welcome.onThisDay': 'On this day',
+  'welcome.calendar': 'Calendar',
+  'welcome.findingLocation': 'Finding where you are…',
+  'welcome.locationOff': 'Location off — entries can still be written',
+  'welcome.youAreIn': 'You’re in {place}',
+  'welcome.youAreNear': 'You’re near {coords}',
+
+  // ── Journal editor ──
+  'editor.newEntry': 'New entry',
+  'editor.editEntry': 'Edit entry',
+  'editor.save': 'Save entry',
+  'editor.saveChanges': 'Save changes',
+  'editor.placeholder': 'Write your entry…',
+  'editor.dateTime': 'Date & time',
+  'editor.heading': 'Heading',
+  'editor.bold': 'Bold',
+  'editor.italic': 'Italic',
+  'editor.bulletList': 'Bulleted list',
+  'editor.quote': 'Quote',
+  'editor.addLink': 'Add a link',
+  'editor.linkUrl': 'URL',
+  'editor.dictate': 'Dictate — speak to add text',
+  'editor.dictationStop': 'Stop dictation',
+  'editor.listening': 'Listening… speak, then tap the mic again to stop.',
+  'editor.dictationBlocked': 'Microphone access is blocked. Allow the mic for this site in your browser, then try again.',
+  'editor.dictationNoMic': 'No microphone was found on this device.',
+  'editor.dictationNeedsNetwork': 'Dictation needs an internet connection — the browser transcribes speech in the cloud.',
+  'editor.addImage': 'Add image',
+  'editor.takePhoto': 'Take photo',
+  'editor.setLocation': 'Set location',
+  'editor.clickTheMap': 'Click the map…',
+  'editor.gettingLocation': 'Getting location…',
+  'editor.noLocation': 'No location set',
+  'editor.useCurrent': 'Use current',
+  'editor.photoGpsPin': 'Pin set from where {file} was taken',
+  'editor.placeName': 'Place name (optional)',
+  'editor.entryName': 'Name this entry (optional — defaults to the date)',
+  'editor.mood': 'Mood (e.g. thoughtful, tired)',
+  'editor.tags': 'Tags',
+  'editor.markAsTrip': 'Mark as trip',
+  'editor.partOfTrip': 'Part of a trip',
+  'editor.tripName': 'Trip name (e.g. Nuremberg Weekend)',
+
+  // ── Reading an entry ──
+  'reader.mood': 'Mood',
+  'reader.trip': 'Trip',
+  'reader.weather': 'Weather',
+  'reader.tags': 'Tags',
+  'reader.visited': 'Visited',
+  'reader.rating': 'Rating',
+  'reader.backToDay': 'Back to this day’s entries',
+  'reader.deleteEntry': 'Delete entry',
+
+  // ── Timeline ──
+  'timeline.title': 'Timeline',
+  'timeline.layoutList': 'List',
+  'timeline.layoutTiles': 'Tiles',
+  'timeline.emptyTitle': 'Your journal is a blank map',
+  'timeline.emptyMessage': 'Write your first entry and pin it where you are — it becomes the first mark on your map.',
+  'timeline.openDay': 'Open this whole day (route map + all entries)',
+  'timeline.deleteEntry': 'Delete this entry',
+
+  // ── One whole day ──
+  'day.title': 'Day',
+  'day.close': 'Close this day',
+  'day.deleteDay': 'Delete day',
+  'day.deleteAll': 'Delete all {count} entries',
+  'day.noPins': 'No locations pinned this day.',
+  'day.noEntriesLeft': 'No entries left for this day.',
+  'day.distance': 'Distance',
+
+  // ── Trips ──
+  'trips.title': 'Trips',
+  'trips.emptyTitle': 'No trips yet',
+  'trips.emptyMessage': 'When writing an entry, tick “Part of a trip” and give it a name. Entries sharing that name gather here — while still showing normally in your timeline.',
+  'trips.oneDay': '1 day',
+  'trips.nDays': '{count} days',
+  'trips.name': 'Trip name',
+
+  // ── Search & its filter chips ──
+  'search.placeholder': 'Search by word, place or tag…',
+  'search.hasPhoto': 'Has photo',
+  'search.hasAudio': 'Has audio',
+  'search.hasLocation': 'Has location',
+  'search.mood': 'Mood',
+  'search.trip': 'Trip',
+  'search.dateFrom': 'Date from',
+  'search.dateTo': 'Date to',
+  'search.nearMe': 'Near me',
+  'search.clearAll': 'Clear all',
+  'search.oneFilter': '1 filter',
+  'search.nFilters': '{count} filters',
+  'search.anyMood': 'Any mood',
+  'search.anyTrip': 'Any trip',
+  'search.within': 'within',
+  'search.ofYourLocation': 'of your location',
+  'search.ofMapCentre': 'of the map centre',
+  'search.locationUnknown': 'Location unknown — open the map or turn on GPS first',
+  'search.nearMeHint': 'Only show entries within a radius of here',
+  'search.oneMatch': '1 match',
+  'search.nMatches': '{count} matches',
+  'search.noMatchesTitle': 'No matches',
+  'search.noMatches': 'Nothing found for “{query}”. Try a different word, place or tag.',
+  'search.noMatchesNearby': 'Nothing within {radius} km. Try a wider radius or a different word.',
+
+  // ── Settings ──
+  'settings.title': 'Settings',
+  'settings.aboutYou': 'About you',
+  'settings.display': 'Display',
+  'settings.appearance': 'Appearance',
+  'settings.welcomeScreen': 'Welcome screen',
+  'settings.map': 'Map',
+  'settings.calendar': 'Calendar',
+  'settings.dictation': 'Dictation',
+  'settings.privacy': 'Privacy & network',
+  'settings.language': 'Language',
+  'settings.advanced': 'Advanced settings',
+  'settings.name': 'Name',
+  'settings.titleRole': 'Title / role',
+  'settings.homeRegion': 'Home region',
+  'settings.coordFormat': 'Coordinate format',
+  'settings.tempUnit': 'Temperature unit',
+  'settings.textSize': 'Text size',
+  'settings.theme': 'Theme',
+  'settings.themeLight': 'Light',
+  'settings.themeDark': 'Dark',
+  'settings.themeSystem': 'System',
+  'settings.weatherTint': 'Weather-tinted background',
+  'settings.livingBackdrop': 'Living landscape backdrop',
+  'settings.cardOpacity': 'Card & panel opacity',
+  'settings.focusCard': 'Today’s focus card',
+  'settings.writingPrompt': 'Daily writing prompt',
+  'settings.routeLine': 'Draw a route line between entries',
+  'settings.poiPins': 'Places of interest on the map',
+  'settings.heatmap': 'Where I’ve been heatmap',
+  'settings.holidayCountry': 'Country for holidays',
+  'settings.holidayRegion': 'Region / state (for regional holidays)',
+  'settings.onlineLookups': 'Look up place names online',
+  'settings.autoFillPlace': 'Auto-fill place name on pin drop',
+  'settings.photoGps': 'Use a photo’s own GPS',
+  'settings.dictationLang': 'Dictation language',
+  'settings.followDevice': 'Follow this device',
+  'settings.graphicsQuality': 'Graphics quality',
+  'settings.savedLocally': 'Saved locally',
+  'settings.resetAll': 'Reset all settings',
+  'settings.resetTitle': 'Reset all settings?',
+  'settings.resetBody': 'Your name, units and preferences return to their defaults. Journal entries are not affected.',
+  'settings.installApp': 'Install app',
+  'settings.uiLanguage': 'App language',
+  'settings.uiLanguageHint': 'Translates Meridian’s own labels. What you write stays in whatever language you write it.',
+
+  // ── Data, backup and export ──
+  'data.title': 'Data',
+  'data.exportFile': 'Export file',
+  'data.importFile': 'Import file',
+  'data.copyAll': 'Copy all',
+  'data.pasteImport': 'Paste & import',
+  'data.pastePlaceholder': 'Paste exported JSON here…',
+  'data.exportMarkdown': 'Export Markdown bundle',
+  'data.printPdf': 'Print / Save as PDF',
+  'data.exportGeoJSON': 'Export GeoJSON',
+  'data.exportGpx': 'Export GPX',
+  'data.exportForGis': 'Export for maps & GIS',
+  'data.noRecords': 'No records yet',
+  'data.imported': 'Imported {added} new, updated {updated}, kept {kept} newer local.',
+  'data.importFailed': 'Import failed: {message}',
+
+  // ── Errors, empty states and confirmations ──
+  'error.title': 'Something went wrong',
+  'error.generic': 'Something went wrong. Please try again.',
+  'error.offline': 'You’re offline — this needs a connection.',
+  'error.reload': 'Reload',
+  'error.locationDenied': 'Location access is blocked. Allow it in your browser settings.',
+  'error.locationUnavailable': 'Couldn’t get your location.',
+  'error.storageFull': 'Storage is full — free some space and try again.',
+  'empty.noEntries': 'No entries yet',
+  'empty.noResults': 'Nothing to show',
+  'confirm.deleteEntryTitle': 'Delete this entry?',
+  'confirm.deleteEntryBody': 'It leaves your timeline and the map. This can’t be undone.',
+  'confirm.deleteDayTitle': 'Delete every entry on {date}?',
+};

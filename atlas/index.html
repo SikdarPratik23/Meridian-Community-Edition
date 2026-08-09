@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Mobile / installed-PWA appearance -->
+    <meta name="theme-color" content="#FDFBF7" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Meridian" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <title>Meridian Community Edition</title>
+    <meta name="description" content="Meridian Community Edition — a field-focused journal for geographers. Plan, record and reflect on your exploration from any device." />
+    <script>
+      // Apply the saved theme BEFORE first paint, so there's no flash of the wrong
+      // mode. Reads the same 'meridian_settings' localStorage key the app uses;
+      // falls back to following the OS. Mirrors applyTheme() in src/theme.ts.
+      (function () {
+        try {
+          var raw = localStorage.getItem('meridian_settings');
+          var theme = raw ? (JSON.parse(raw).theme || 'system') : 'system';
+          var dark = theme === 'dark' ||
+            (theme === 'system' && window.matchMedia &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var de = document.documentElement;
+          if (dark) de.classList.add('dark');
+          de.style.colorScheme = dark ? 'dark' : 'light';
+          var bg = dark ? '#14181E' : '#FDFBF7';
+          de.style.backgroundColor = bg;
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute('content', bg);
+        } catch (e) { /* default light */ }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Diagnostic: turn a blank/white screen into a readable error message.
+      // Only active BEFORE the app mounts (see __meridianBooted, set in main.tsx).
+      // Once the app is running, stray errors are handled in-app by the React
+      // ErrorBoundary and per-feature try/catches — so a single late rejection can
+      // never wipe the whole UI.
+      (function () {
+        function booted() { return !!window.__meridianBooted; }
+        function show(title, detail) {
+          if (booted()) return;
+          var root = document.getElementById('root');
+          if (!root) return;
+          root.innerHTML =
+            '<div style="font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:24px;'
+            + 'background:#FDFBF7;color:#2C3E50;border:1px solid #D4DADF;border-radius:10px">'
+            + '<div style="font-size:22px;margin-bottom:8px">🗺️ Meridian could not start</div>'
+            + '<div style="color:#C05A45;font-weight:600;margin-bottom:8px">' + title + '</div>'
+            + '<pre style="white-space:pre-wrap;font-size:12px;background:#F2EFE9;padding:12px;'
+            + 'border-radius:6px;overflow:auto">' + detail + '</pre>'
+            + '<div style="font-size:12px;color:#2C3E50;opacity:.6;margin-top:10px">'
+            + 'Share this message to get it fixed.</div></div>';
+        }
+        window.addEventListener('error', function (e) {
+          show('JavaScript error', (e.message || 'Unknown error') + '\n' + (e.filename || '') + ':' + (e.lineno || ''));
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason;
+          show('Unhandled promise rejection', (r && (r.stack || r.message)) ? (r.stack || r.message) : String(r));
+        });
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

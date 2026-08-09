@@ -1,0 +1,37 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+dev-dist
+.vite
+*.local
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Personal data — keep journal exports/backups out of Git
+meridian-backup-*.json
+*.sqlite
+*.sqlite3
+atlas.db
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

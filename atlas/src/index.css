@@ -1,0 +1,2264 @@
+@import "tailwindcss";
+
+@theme {
+  /* Active scheme: "Cartographer's Parchment" — warm cream, slate ink, terracotta.
+     Token names are role-based and kept stable across schemes (the app references
+     them everywhere), so swapping a palette is just these six values. */
+  --color-parchment: #FDFBF7; /* background — warm cream */
+  --color-ink: #2C3E50;       /* primary text — slate */
+  --color-water: #D4DADF;     /* borders — cool grey */
+  --color-land: #F2EFE9;      /* subtle panel fill — oat */
+  --color-surface: #FFFFFF;   /* raised card surface (was bg-white everywhere) */
+  --color-surface-raised: #FFFFFF; /* cards that sit ON a frosted panel (e.g. timeline
+                                      entries). Same as --color-surface in light — no
+                                      change — but lifted in dark so boxes read as raised
+                                      above the sidebar instead of blending into it. */
+  --color-terracotta: #C05A45;/* accent — terracotta */
+  --color-forest: #4A6B53;    /* success — forest */
+  /* Bengali fonts follow the Latin ones in each stack: the browser matches
+     per-character, so Latin uses Inter/Merriweather and only Bengali codepoints
+     fall through to the Noto Bengali faces (imported in main.tsx). */
+  --font-sans: "Inter", "Noto Sans Bengali", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Merriweather", "Noto Serif Bengali", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Dialog entrance utilities — Tailwind v4 only emits `animate-*` from a
+     declared `--animate-*` theme token, and until these existed the
+     `animate-dialog-fade`/`animate-dialog-pop` classes used by the command
+     palette backdrop and the onboarding dialog generated NO CSS at all (the
+     first-run introduction had no entrance animation whatsoever). The
+     keyframes already exist below, under "Modal dialogs". */
+  --animate-dialog-fade: dialog-fade var(--mo-fast) var(--mo-ease-out) both;
+  --animate-dialog-pop:  dialog-pop  var(--mo-base) var(--mo-ease) both;
+}
+
+/* ───────────────────────── Motion tokens ─────────────────────────
+   One place to tune the entire INTERFACE's feel. Two multipliers scale
+   everything: --mo-amp for distance/scale, --mo-dur for duration. That's what
+   makes the "Motion" setting (Settings → Advanced → Backdrop & performance) a
+   two-line rule below rather than an audit of every animation in the app.
+
+   Scope: these govern interface chrome — buttons, panels, dialogs, entrances —
+   NOT the ambient backdrop, which stays governed by `seasonalAnim` and
+   `graphicsQuality` (see features/welcome/quality.ts). A user who turns
+   interface motion off keeps the living landscape they chose; the two are
+   deliberately separate axes. */
+:root {
+  --mo-amp: 1;
+  --mo-dur: 1;
+
+  --mo-fast:   calc(0.16s * var(--mo-dur));
+  --mo-base:   calc(0.26s * var(--mo-dur));
+  --mo-slow:   calc(0.42s * var(--mo-dur));
+  --mo-slower: calc(0.60s * var(--mo-dur));
+
+  --mo-ease:     cubic-bezier(0.16, 1, 0.3, 1);     /* default — decelerate in */
+  --mo-ease-out: cubic-bezier(0.4, 0, 0.2, 1);      /* symmetric, for colour/opacity */
+  --mo-ease-in:  cubic-bezier(0.4, 0, 1, 1);        /* exits */
+  --mo-spring:   cubic-bezier(0.34, 1.56, 0.64, 1); /* press + landing ONLY */
+
+  --mo-rise:    calc(10px * var(--mo-amp));
+  --mo-slide:   calc(18px * var(--mo-amp));
+  --mo-stagger: calc(0.045s * var(--mo-dur));
+}
+
+/* Set on <html> from the `motion` setting (App.tsx), folded with the OS
+   `prefers-reduced-motion` request — which always wins, regardless of the
+   in-app setting. `off` doesn't remove the `animation`/`transition`
+   declarations below; it collapses their duration and amplitude toward zero,
+   which is visually equivalent and needs no per-animation opt-out. */
+html[data-motion="reduced"] { --mo-amp: 0.45; --mo-dur: 0.7; }
+html[data-motion="off"]     { --mo-amp: 0;    --mo-dur: 0.001; }
+
+body {
+  background: var(--color-parchment);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* ───────────────────────── Scrollbars ─────────────────────────
+   The OS default scrollbar (a wide, opaque grey bar) clashes with the soft
+   parchment UI. Slim it down, round it, and tint it from the ink token at low
+   opacity so it reads as a quiet part of the page and only firms up on hover.
+   Firefox uses the standard `scrollbar-*` props; Chromium/Safari use the
+   ::-webkit pseudo-elements. The track is transparent so the weather wash and
+   hillside show straight through behind it. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 25%, transparent) transparent;
+}
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-ink) 22%, transparent);
+  border-radius: 9999px;
+  /* Transparent border carved from the thumb leaves a slim, inset pill rather
+     than a bar that touches both edges of the track. */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--color-ink) 42%, transparent);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ───────────────────────── Dark mode ─────────────────────────
+   Re-map the same six role tokens (plus the card surface) to a night palette.
+   Because every utility references these CSS variables, overriding them on the
+   .dark root reflows almost the entire UI for free — no per-component dark:
+   classes. Written unlayered so it reliably wins over @theme's :root defaults.
+   `.dark` is toggled on <html> by the theme setting (and an anti-flash script in
+   index.html). Keeps the warm, paper-like character at night rather than going
+   cold black. */
+.dark {
+  color-scheme: dark;
+  --color-parchment: #14181E; /* background — deep slate */
+  --color-ink: #E6E1D6;       /* primary text — warm off-white */
+  --color-water: #303A45;     /* borders — muted slate */
+  --color-land: #1E242C;      /* subtle panel fill */
+  --color-surface: #242C35;   /* raised card surface, a step above the page */
+  --color-surface-raised: #343F4C; /* a clear step ABOVE the frosted panel (which is
+                                      --color-surface): timeline entry/day boxes need to
+                                      read as raised at night, where the panel and a plain
+                                      surface card are the same colour and only the outline
+                                      separated them. Lighter than the border (#303A45). */
+  --color-terracotta: #D2715A;/* accent — slightly brighter so it pops on dark */
+  --color-forest: #5E8C6A;    /* success — lifted for contrast */
+}
+.dark .skeleton {
+  background: linear-gradient(90deg, var(--color-land) 25%, #2C343D 37%, var(--color-land) 63%);
+  background-size: 200% 100%;
+}
+
+/* ───────────────────────── Buttons ─────────────────────────
+   A single, app-wide button system: "outlined secondary + solid primary".
+   Secondary actions get a real border and full-strength ink text (legible on
+   the cream background, not faded); the primary action stays solid terracotta.
+   All variants share a generous tap target, a hover lift, and a press squash.
+   Defined in @layer components so Tailwind utility classes still win when a
+   specific button needs a one-off tweak. */
+@layer components {
+  .btn {
+    position: relative;
+    overflow: hidden;               /* clips the primary sheen sweep to the pill */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.25rem;            /* ~36px — comfortable touch target */
+    padding: 0.5rem 0.9rem;
+    border: 1.5px solid transparent;
+    border-radius: 0.6rem;
+    font-size: 0.8125rem;           /* 13px */
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    /* Springy transform so a tap squashes then pops back with a little overshoot
+       (the tactile feedback). Colour/shadow stay on a plain quick ease. Every
+       duration reads --mo-dur, so the Motion setting governs the whole button
+       system for free. */
+    transition: transform calc(0.24s * var(--mo-dur)) var(--mo-spring),
+                background-color calc(0.15s * var(--mo-dur)) ease, border-color calc(0.15s * var(--mo-dur)) ease,
+                color calc(0.15s * var(--mo-dur)) ease, box-shadow calc(0.15s * var(--mo-dur)) ease,
+                outline-color var(--mo-fast) var(--mo-ease-out), outline-offset var(--mo-fast) var(--mo-ease-out);
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-terracotta) 65%, transparent);
+    outline-offset: 2px;
+  }
+  /* Press: squash down; release springs back past 1.0 for a satisfying pop. */
+  .btn:not(:disabled):active { transform: scale(0.9); transition-duration: calc(0.06s * var(--mo-dur)); }
+
+  /* A light sheen sweeps across the primary action on hover (a subtle "slide").
+     Reused at reduced strength on secondary/icon/toolbar buttons — see
+     "Button sheen, extended" below. */
+  .btn-primary::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -60%;
+    width: 45%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: skewX(-18deg);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .btn-primary:not(:disabled):hover::after { animation: btn-sheen calc(0.7s * var(--mo-dur)) ease; }
+  @keyframes btn-sheen {
+    0% { left: -60%; opacity: 0; }
+    18% { opacity: 1; }
+    100% { left: 130%; opacity: 0; }
+  }
+
+  /* Secondary — bordered, dark ink text. The default for Close / tabs / nav.
+     Uses the surface token (not literal white) so it adapts in dark mode. */
+  .btn-secondary {
+    background: var(--color-surface);
+    border-color: var(--color-water);
+    color: var(--color-ink);
+    box-shadow: 0 1px 1px rgba(44, 62, 80, 0.04);
+  }
+  .btn-secondary:not(:disabled):hover {
+    background: var(--color-land);
+    border-color: color-mix(in srgb, var(--color-ink) 35%, var(--color-water));
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(44, 62, 80, 0.1);
+  }
+
+  /* Primary — solid terracotta, the one obvious main action. */
+  .btn-primary {
+    background: var(--color-terracotta);
+    border-color: var(--color-terracotta);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(192, 90, 69, 0.3);
+  }
+  .btn-primary:not(:disabled):hover {
+    background: color-mix(in srgb, var(--color-terracotta) 88%, var(--color-ink));
+    border-color: color-mix(in srgb, var(--color-terracotta) 88%, var(--color-ink));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(192, 90, 69, 0.35);
+  }
+
+  /* Danger — bordered, red. For destructive actions (delete). */
+  .btn-danger {
+    background: var(--color-surface);
+    border-color: color-mix(in srgb, #dc2626 35%, var(--color-water));
+    color: #e0584a;
+  }
+  .btn-danger:not(:disabled):hover {
+    background: color-mix(in srgb, #dc2626 12%, var(--color-surface));
+    border-color: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(220, 38, 38, 0.18);
+  }
+  .btn-danger:focus-visible { outline-color: rgba(220, 38, 38, 0.6); }
+
+  /* Toggle "on" state — solid ink, used by segmented controls / active tabs.
+     Text is parchment (not literal white) so it inverts correctly in dark mode,
+     where `ink` becomes light and would hide white text. */
+  .btn-active {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-parchment);
+  }
+
+  /* Size + shape modifiers. */
+  .btn-sm  { min-height: 1.95rem; padding: 0.35rem 0.65rem; font-size: 0.75rem; border-radius: 0.5rem; }
+  .btn-lg  { min-height: 2.6rem; padding: 0.65rem 1.1rem; font-size: 0.9rem; }
+  .btn-icon { padding: 0; width: 2.25rem; }
+  .btn-icon.btn-sm { width: 1.95rem; }
+  .btn-block { display: flex; width: 100%; }
+
+  /* Button sheen, extended — the primary action's hover gloss, reused at ~35%
+     strength (a warm terracotta tint rather than white, which reads better on
+     a bordered surface) so secondary/icon buttons and the editor's toolbar
+     feel like one family instead of the primary button being the only one
+     that responds. Same keyframe as .btn-primary — no second animation. */
+  .btn-secondary::after,
+  .btn-icon::after,
+  .fmt-btn::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -60%;
+    width: 45%; height: 100%;
+    background: linear-gradient(100deg, transparent, color-mix(in srgb, var(--color-terracotta) 35%, transparent), transparent);
+    transform: skewX(-18deg);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .btn-secondary:not(:disabled):hover::after,
+  .btn-icon:not(:disabled):hover::after,
+  .fmt-btn:hover::after {
+    animation: btn-sheen calc(0.7s * var(--mo-dur)) ease;
+  }
+
+  /* Press ripple — the point-of-contact feedback for every .btn/.fmt-btn in the
+     app, spawned by a single delegated listener (hooks/useRipple.ts) rather
+     than touched into each of the many call sites. White on solid buttons;
+     tinted terracotta on bordered/toolbar ones, set inline by the listener. */
+  .btn-ripple {
+    position: absolute;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+    animation: btn-ripple-out calc(0.6s * var(--mo-dur)) var(--mo-ease-out) forwards;
+  }
+  @keyframes btn-ripple-out {
+    to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn, .btn:hover, .btn:active { transform: none; }
+  .btn-primary:hover::after,
+  .btn-secondary:hover::after,
+  .btn-icon:hover::after,
+  .fmt-btn:hover::after { animation: none; }
+  .btn-ripple { display: none; }
+}
+
+/* ───────────────────────── App loading screen ─────────────────────────
+   A crafted compass, not a generic spinner: a faint full ring, a terracotta
+   arc that sweeps around it, and a needle that gently seeks north. Sized in the
+   theme tokens so it adapts to light/dark. The sql.js WebAssembly boot can take
+   a few seconds, so this is on screen long enough to be worth getting right. */
+.loader-compass svg { display: block; overflow: visible; }
+.loader-ring { fill: none; stroke: color-mix(in srgb, var(--color-ink) 14%, transparent); stroke-width: 3; }
+.loader-arc {
+  fill: none; stroke: var(--color-terracotta); stroke-width: 3; stroke-linecap: round;
+  /* r=38 → circumference ≈ 238.8; a short lit arc chases the ring. */
+  stroke-dasharray: 60 179; transform-origin: 44px 44px;
+  animation: loader-arc-spin 1.15s linear infinite;
+}
+.loader-needle { transform-origin: 44px 44px; animation: loader-needle-seek 3.4s cubic-bezier(0.5, 0, 0.2, 1) infinite; }
+.loader-needle-n { fill: var(--color-terracotta); }
+.loader-needle-s { fill: color-mix(in srgb, var(--color-ink) 34%, transparent); }
+.loader-hub { fill: var(--color-surface); stroke: color-mix(in srgb, var(--color-ink) 30%, transparent); stroke-width: 1.5; }
+.loader-tagline { animation: loader-pulse 1.9s ease-in-out infinite; }
+@keyframes loader-arc-spin { to { transform: rotate(360deg); } }
+@keyframes loader-needle-seek {
+  0%   { transform: rotate(-42deg); }
+  45%  { transform: rotate(28deg); }
+  60%  { transform: rotate(18deg); }
+  100% { transform: rotate(318deg); }
+}
+@keyframes loader-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.85; } }
+@media (prefers-reduced-motion: reduce) {
+  .loader-arc, .loader-needle, .loader-tagline { animation: none; }
+  .loader-arc { stroke-dasharray: none; opacity: 0.85; }
+}
+
+/* ── Loading → app handoff ──
+   The compass above is an INDETERMINATE "still working" signal (its spin/seek
+   loops are intentionally exempt from --mo-dur, same as any other activity
+   indicator). What follows is the one-shot HANDOFF once boot actually
+   finishes — genuinely decorative, so it reads the Motion setting like the
+   rest of the interface.
+
+   - `.loader-fill` is a second ring, drawn from 12 o'clock, whose
+     stroke-dashoffset App.tsx sets from real boot progress (initDb → file
+     link → sync link → http sync) — the indeterminate arc keeps spinning
+     underneath as the underlay the plan calls for.
+   - `.loader-needle-settle` stops the seek loop and eases the needle to true
+     north (0deg) via a plain transition, which — because a transition
+     interpolates from whatever angle is currently rendered — needs no JS
+     tracking of the seek's mid-cycle position.
+   - `.loader-dissolve` fades the whole overlay out (opacity, scale, blur —
+     compositor-only) a beat after the needle starts settling, revealing the
+     shell already staggering in underneath (see .animate-fade-in-up on the
+     sidebar/main-pane wrappers in App.tsx). */
+.loader-fill {
+  fill: none; stroke: var(--color-terracotta); stroke-width: 3; stroke-linecap: round;
+  transform-origin: 44px 44px;
+  transform: rotate(-90deg); /* start the fill at 12 o'clock */
+  stroke-dasharray: 238.76; /* 2π × r38 */
+  transition: stroke-dashoffset calc(0.3s * var(--mo-dur)) var(--mo-ease-out);
+}
+.loader-needle.loader-needle-settle {
+  animation: none;
+  transition: transform calc(0.3s * var(--mo-dur)) var(--mo-ease);
+  transform: rotate(0deg);
+}
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200; /* above onboarding (100) and the command palette (95) */
+  pointer-events: none; /* nothing on the loader is ever interactive */
+}
+@keyframes loader-dissolve {
+  to { opacity: 0; transform: scale(1.06); filter: blur(3px); }
+}
+.loader-dissolve {
+  animation: loader-dissolve calc(0.25s * var(--mo-dur)) var(--mo-ease-out) calc(0.15s * var(--mo-dur)) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader-fill { transition: none; }
+  .loader-needle.loader-needle-settle { transition: none; }
+  .loader-dissolve { animation: none; opacity: 0; }
+}
+
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+  70% { box-shadow: 0 0 0 12px rgba(59,130,246,0); }
+  100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+}
+
+.atlas-user-marker {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 3px solid white;
+  animation: pulse-dot 2s infinite;
+}
+/* This was the one animation in the app with no prefers-reduced-motion guard
+   (MOTION_PLAN.md M32) — fixed here, alongside the sonar ping it now sits next to. */
+@media (prefers-reduced-motion: reduce) {
+  .atlas-user-marker { animation: none; }
+}
+
+/* Places of interest (Wikipedia geosearch) — a little gold "banner" flag. It
+   shows just its pennant when collapsed and slides open to reveal the place name
+   on hover/tap, so a mapful of them stays readable. Distinct from entry dots
+   (round, terracotta/brown) and the draft pin (larger teardrop). */
+.atlas-poi-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 200px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  /* Bright magenta so POI pins jump out from the terracotta entries, blue
+     location dot, and gold heatmap. A colored halo makes them "pop". */
+  background: #E5178F;
+  color: #fff;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 2px rgba(229, 23, 143, 0.35), 0 1px 5px rgba(0, 0, 0, 0.4);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateY(-4px);
+  transition: box-shadow 120ms ease;
+}
+.atlas-poi-marker .poi-ic {
+  font-size: 11px;
+  line-height: 1;
+}
+.atlas-poi-marker .poi-label {
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-width calc(200ms * var(--mo-dur)) ease, opacity calc(160ms * var(--mo-dur)) ease;
+}
+.atlas-poi-marker:hover {
+  z-index: 5;
+  box-shadow: 0 0 0 3px rgba(229, 23, 143, 0.45), 0 2px 9px rgba(0, 0, 0, 0.45);
+}
+.atlas-poi-marker:hover .poi-label {
+  max-width: 160px;
+  opacity: 1;
+  text-overflow: ellipsis;
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-poi-marker .poi-label { transition: none; }
+}
+
+/* Popup shown when a POI pin is clicked. */
+.atlas-poi-popup .maplibregl-popup-content {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-water);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.atlas-poi-popup .maplibregl-popup-tip {
+  border-top-color: var(--color-surface);
+}
+.atlas-poi-popup .poi-pop-title {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+  max-width: 12rem;
+}
+.atlas-poi-popup .poi-pop-title:hover {
+  color: var(--color-terracotta);
+}
+.atlas-poi-popup .poi-pop-dist {
+  font-size: 0.6875rem;
+  color: color-mix(in srgb, var(--color-ink) 50%, transparent);
+  margin-top: 0.125rem;
+}
+
+/* The location being chosen for a new entry (GPS or hand-picked). Its marker
+   ROOT is a separate bare wrapper (Map.tsx) — this element is a CHILD of it,
+   free to carry the M34 landing animation without fighting MapLibre's own
+   positioning transform on the root. */
+.atlas-draft-marker {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--color-terracotta);
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Welcome screen — gentle entrance + idle motion. */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.animate-fade-in-up { animation: fade-in-up calc(0.5s * var(--mo-dur)) ease both; }
+.animate-floaty { animation: floaty 4.5s ease-in-out infinite; }
+
+/* Insight cards (stats, calendar, on-this-day) — a soft pop on first paint. */
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-card-in { animation: card-in calc(0.4s * var(--mo-dur)) var(--mo-ease) both; }
+
+/* A gentle flame flicker for the journaling-streak badge. */
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  40%      { transform: scale(1.12) rotate(-4deg); }
+  70%      { transform: scale(0.96) rotate(3deg); }
+}
+.animate-flame { animation: flame-flicker 2.2s ease-in-out infinite; display: inline-block; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-card-in, .animate-flame { animation: none; }
+}
+
+/* Entry removal — slide + fade out so a deleted timeline card leaves gracefully
+   instead of vanishing. Paired with a short JS delay before the record is dropped. */
+@keyframes entry-out {
+  to { opacity: 0; transform: translateX(-14px) scale(0.97); }
+}
+.animate-entry-out { animation: entry-out calc(0.22s * var(--mo-dur)) ease forwards; pointer-events: none; }
+.skeleton {
+  background: linear-gradient(90deg, var(--color-land) 25%, #e8e3da 37%, var(--color-land) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up, .animate-floaty, .skeleton, .animate-entry-out { animation: none; }
+}
+
+/* Modal dialogs — backdrop fade; slides up as a sheet on phones, pops in centered on desktop. */
+@keyframes dialog-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dialog-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes dialog-slide-up {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.dialog-backdrop {
+  background: color-mix(in srgb, var(--color-ink) 35%, transparent);
+  backdrop-filter: blur(2px);
+  animation: dialog-fade calc(0.15s * var(--mo-dur)) ease both;
+}
+/* Mobile default: slide up from the bottom edge. */
+.dialog-panel { animation: dialog-slide-up calc(0.22s * var(--mo-dur)) var(--mo-ease) both; }
+/* Desktop: centered pop. */
+@media (min-width: 768px) {
+  .dialog-panel { animation: dialog-pop calc(0.18s * var(--mo-dur)) var(--mo-ease) both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialog-backdrop, .dialog-panel { animation: none; }
+}
+
+/* Safe-area padding for screen-edge bars on notched phones (viewport-fit=cover).
+   Falls back to the normal 0.75rem when there's no inset. */
+.safe-pt { padding-top: max(0.75rem, env(safe-area-inset-top)); }
+.safe-pb { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+
+/* Weather-driven welcome ambiance — the backdrop reflects the *current* weather
+   (sunny glow, drifting clouds) rather than a generic season. Precipitation and
+   drifting particles now live on the canvas (see ParticleField); what remains
+   here is the celestial sky + soft clouds. All decorative. */
+@keyframes cloud-drift { from { transform: translateX(-36vw); } to { transform: translateX(136vw); } }
+@keyframes sun-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.95; } }
+/* `--sun-arc-x`/`--sun-arc-y` (M43, MOTION_PLAN.md Wave 7) carry the sun/moon's
+   small decorative arc offset — set on SeasonAccent's root by SeasonAccent.tsx,
+   defaulting to 0px wherever unset (reduced motion, no location fix yet). Both
+   keyframe steps repeat the translate deliberately: `transform` is a shorthand,
+   so a step that named only `scale()`/`rotate()` would silently drop it. */
+@keyframes sun-breathe {
+  0%, 100% { transform: translate(var(--sun-arc-x, 0px), var(--sun-arc-y, 0px)) scale(1); }
+  50%      { transform: translate(var(--sun-arc-x, 0px), var(--sun-arc-y, 0px)) scale(1.06); }
+}
+@keyframes beam-spin {
+  from { transform: translate(var(--sun-arc-x, 0px), var(--sun-arc-y, 0px)) rotate(0deg); }
+  to   { transform: translate(var(--sun-arc-x, 0px), var(--sun-arc-y, 0px)) rotate(360deg); }
+}
+
+/* A soft sky wash anchored to the top of the welcome screen, tinted to the
+   current weather, fading into the cream below so it adds depth without
+   flattening the page. One class per weather mode. */
+/* App-wide weather tint. Applied to the sidebar, main pane and app shell so the
+   colour bleeds across every panel. `background-attachment: fixed` anchors the
+   gradient to the viewport, so the separate panels share ONE continuous wash
+   instead of each restarting its own. Layered over solid parchment so panels
+   stay opaque (the mobile drawer must not become see-through). Kept light for
+   text contrast. */
+.wx-sun, .wx-clouds, .wx-rain, .wx-snow {
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-color: var(--color-parchment);
+}
+.wx-sun {
+  background-image: linear-gradient(to bottom,
+    rgba(255, 196, 110, 0.42) 0%, rgba(255, 221, 170, 0.24) 45%, rgba(255, 237, 208, 0.30) 100%);
+}
+.wx-clouds {
+  background-image: linear-gradient(to bottom,
+    rgba(170, 184, 201, 0.42) 0%, rgba(193, 204, 217, 0.24) 45%, rgba(210, 219, 229, 0.30) 100%);
+}
+.wx-rain {
+  background-image: linear-gradient(to bottom,
+    rgba(108, 134, 165, 0.44) 0%, rgba(148, 168, 193, 0.26) 45%, rgba(174, 191, 212, 0.32) 100%);
+}
+.wx-snow {
+  background-image: linear-gradient(to bottom,
+    rgba(200, 219, 238, 0.48) 0%, rgba(219, 232, 246, 0.28) 45%, rgba(232, 242, 250, 0.34) 100%);
+}
+/* Dark mode: keep the weather a subtle hint over the dark page rather than a
+   bright wash, so the UI stays dark with just a tinted glow. */
+.dark .wx-sun {
+  background-image: linear-gradient(to bottom,
+    rgba(255, 170, 80, 0.12) 0%, rgba(255, 188, 110, 0.06) 45%, rgba(255, 200, 120, 0.05) 100%);
+}
+.dark .wx-clouds {
+  background-image: linear-gradient(to bottom,
+    rgba(150, 165, 188, 0.12) 0%, rgba(160, 176, 198, 0.06) 45%, rgba(170, 186, 206, 0.05) 100%);
+}
+.dark .wx-rain {
+  background-image: linear-gradient(to bottom,
+    rgba(90, 125, 170, 0.16) 0%, rgba(110, 145, 185, 0.08) 45%, rgba(130, 160, 195, 0.06) 100%);
+}
+.dark .wx-snow {
+  background-image: linear-gradient(to bottom,
+    rgba(170, 195, 225, 0.14) 0%, rgba(185, 208, 234, 0.07) 45%, rgba(200, 218, 240, 0.06) 100%);
+}
+/* Soft rotating sunbeams radiating from the sun, faded out by a radial mask.
+   Centred on the sun disc and kept fully inside the welcome area (no negative
+   offsets) so the whole ring of rays is visible rather than clipped at the
+   top/right edges. */
+.sunbeams {
+  position: absolute; top: -22px; right: 338px; width: 260px; height: 260px;
+  pointer-events: none; transform-origin: 50% 50%;
+  background: repeating-conic-gradient(from 0deg at 50% 50%,
+    rgba(255, 198, 92, 0.13) 0deg 5deg, rgba(255, 198, 92, 0) 5deg 17deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 8%, transparent 54%);
+  mask-image: radial-gradient(circle at 50% 50%, #000 8%, transparent 54%);
+  animation: beam-spin 80s linear infinite;
+}
+/* A warm sun glow anchored to the top-right of the welcome screen. Deeper amber
+   than before so it reads against the bright cream background. */
+.sun-glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(46% 40% at 74% 13%,
+    rgba(255, 168, 56, 0.42), rgba(255, 184, 77, 0.18) 45%, rgba(255, 196, 87, 0) 72%);
+  /* Deliberately NOT translated by the M43 arc offset (see that section's own
+     comment above `sun-breathe`): this element is `inset: 0`, so its gradient
+     anchor is a percentage of the WHOLE viewport — the same few-px arc shift
+     that reads correctly on the small `.sun-disc`/`.sunbeams` boxes is
+     imperceptible here, which visibly split the orb from its own glow rather
+     than moving them together. The glow stays a fixed ambient wash; only the
+     actual body + its rays travel the arc. */
+  animation: sun-pulse 7s ease-in-out infinite;
+}
+/* An actual sun disc — a visible orb, not just a wash. Sits in the open sky to
+   the left of the mini-map (which lives in the very top-right corner). */
+.sun-disc {
+  position: absolute; top: 64px; right: 430px; width: 74px; height: 74px;
+  border-radius: 9999px; pointer-events: none;
+  background: radial-gradient(circle at 50% 50%,
+    #FFE7A1 0%, #FFC93C 38%, #FFA92E 60%, rgba(255, 169, 46, 0) 74%);
+  box-shadow: 0 0 36px 8px rgba(255, 170, 50, 0.5), 0 0 80px 24px rgba(255, 190, 90, 0.28);
+  animation: sun-breathe 6s ease-in-out infinite;
+}
+/* The night counterpart to the sun: a pale moon in the same patch of sky, plus
+   a cool glow that washes the scene the way the sun's warm glow does by day. */
+.moon-glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(46% 40% at 74% 13%,
+    rgba(150, 175, 230, 0.34), rgba(120, 145, 205, 0.14) 46%, rgba(110, 135, 195, 0) 72%);
+  /* Not translated by the arc offset — same reasoning as `.sun-glow` above. */
+  animation: sun-pulse 9s ease-in-out infinite;
+}
+.moon-disc {
+  position: absolute; top: 64px; right: 430px; width: 68px; height: 68px;
+  border-radius: 9999px; pointer-events: none;
+  /* The disc itself is now an SVG (phase-accurate crescent/gibbous); this box
+     just positions it and casts the soft cool glow + gentle breathe. */
+  box-shadow: 0 0 28px 6px rgba(200, 215, 245, 0.45), 0 0 64px 20px rgba(150, 170, 220, 0.22);
+  animation: sun-breathe 8s ease-in-out infinite;
+}
+.moon-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* The un-lit face: a faint blue-grey earthshine so the dark limb reads as the
+   Moon rather than a hole in the sky. */
+.moon-dark { fill: rgba(70, 84, 116, 0.55); }
+/* Twinkling stars for clear nights. */
+.star {
+  position: absolute; border-radius: 9999px; background: #ffffff;
+  box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.7);
+  animation: twinkle var(--tw, 3.5s) ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.85); }
+  50%      { opacity: 0.95; transform: scale(1); }
+}
+/* Time-of-day wash, painted over the weather scene (below the panels). Golden
+   hour warms it; night lays a deep wash that masks the bright daytime tint so
+   the whole scene — hills, cards, the lot — reads as nighttime. */
+.sky-wash { position: absolute; inset: 0; pointer-events: none; }
+.sky-golden {
+  background: linear-gradient(to bottom,
+    rgba(255, 150, 95, 0.24) 0%, rgba(255, 178, 120, 0.11) 45%, rgba(255, 200, 150, 0) 82%);
+}
+.sky-night {
+  background: linear-gradient(to bottom,
+    rgba(15, 19, 37, 0.88) 0%, rgba(23, 29, 53, 0.66) 50%, rgba(31, 39, 65, 0.5) 100%);
+}
+/* Welcome text that sits directly on the night sky (no card behind it) needs a
+   fixed light colour — the deep night wash is the same in light or dark theme,
+   so a theme token (which flips) wouldn't stay readable. Three weights mirror
+   the daytime ink/80 · ink/50 · ink/40 hierarchy. A soft shadow lifts it off the
+   sky. Applied per-element on the welcome screen only when it's night. */
+.txt-night       { color: rgba(237, 233, 224, 0.95); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); }
+.txt-night-dim   { color: rgba(237, 233, 224, 0.74); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3); }
+.txt-night-faint { color: rgba(237, 233, 224, 0.56); text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3); }
+@media (prefers-reduced-motion: reduce) {
+  .moon-disc, .moon-glow, .star { animation: none; }
+}
+/* Soft, blurred cloud blobs (not emoji) drifting across the upper sky. Built
+   from two overlapping radial puffs so the edge stays fluffy, tinted lighter in
+   dark mode so they read as pale cloud rather than grey smudge. */
+.cloud-soft {
+  position: absolute; left: 0; width: 200px; height: 60px;
+  pointer-events: none; will-change: transform;
+  background:
+    radial-gradient(50% 70% at 32% 62%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 72%),
+    radial-gradient(55% 90% at 62% 50%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 74%);
+  filter: blur(4px);
+  animation-name: cloud-drift; animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.dark .cloud-soft {
+  background:
+    radial-gradient(50% 70% at 32% 62%, rgba(200, 212, 230, 0.5), rgba(200, 212, 230, 0) 72%),
+    radial-gradient(55% 90% at 62% 50%, rgba(200, 212, 230, 0.45), rgba(200, 212, 230, 0) 74%);
+}
+
+/* Northern lights — a few blurred colour bands that shimmer along the top of a
+   clear high-latitude night sky. Pure CSS gradients + blur, no shaders. */
+.aurora { position: absolute; top: 0; left: 0; right: 0; height: 46%; pointer-events: none; overflow: hidden; }
+.aurora-band {
+  position: absolute; left: -20%; right: -20%; height: 130px;
+  filter: blur(26px); opacity: 0.5; mix-blend-mode: screen;
+  transform-origin: center;
+}
+.aurora-b1 { top: 6%;  background: linear-gradient(100deg, transparent, rgba(80, 240, 180, 0.75) 45%, rgba(120, 200, 255, 0.4) 70%, transparent); animation: aurora-wave 11s ease-in-out infinite; }
+.aurora-b2 { top: 20%; background: linear-gradient(80deg, transparent, rgba(140, 120, 240, 0.55) 40%, rgba(90, 220, 190, 0.6) 75%, transparent); animation: aurora-wave 15s ease-in-out infinite reverse; }
+.aurora-b3 { top: 34%; background: linear-gradient(110deg, transparent, rgba(90, 230, 200, 0.5) 50%, transparent); animation: aurora-wave 19s ease-in-out infinite; }
+@keyframes aurora-wave {
+  0%, 100% { transform: translateX(-6%) skewX(-8deg) scaleY(0.9); opacity: 0.35; }
+  50%      { transform: translateX(6%) skewX(8deg) scaleY(1.15); opacity: 0.6; }
+}
+
+/* Fog rolling across the mid-scene (real fog codes, lighter for a snow haze). */
+.fog-layer {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 62%;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 60% at 50% 100%, rgba(226, 230, 236, 0.55), rgba(226, 230, 236, 0) 70%),
+    linear-gradient(to top, rgba(226, 230, 236, 0.5), rgba(226, 230, 236, 0) 80%);
+  animation: fog-drift 26s ease-in-out infinite;
+}
+.fog-layer.fog-light { opacity: 0.6; }
+.dark .fog-layer {
+  background:
+    radial-gradient(120% 60% at 50% 100%, rgba(120, 130, 145, 0.4), rgba(120, 130, 145, 0) 70%),
+    linear-gradient(to top, rgba(120, 130, 145, 0.36), rgba(120, 130, 145, 0) 80%);
+}
+@keyframes fog-drift {
+  0%, 100% { transform: translateX(-3%); opacity: 0.8; }
+  50%      { transform: translateX(3%); opacity: 1; }
+}
+
+/* Birds gliding across the daytime sky — a little flock, each flapping on its
+   own and drifting left→right with a gentle bob. Colour adapts to the theme so
+   they read against both a bright and a dark sky. */
+.bird {
+  position: absolute; left: 0;
+  color: rgba(66, 78, 94, 0.7);
+  animation-name: bird-fly; animation-timing-function: linear; animation-iteration-count: infinite;
+  will-change: transform;
+}
+.dark .bird { color: rgba(212, 218, 228, 0.6); }
+.bird svg { display: block; overflow: visible; }
+.bird-wing { stroke: currentColor; transform-box: fill-box; }
+.bird-wl { transform-origin: 100% 100%; animation: bird-flap-l 0.62s ease-in-out infinite; }
+.bird-wr { transform-origin: 0% 100%; animation: bird-flap-r 0.62s ease-in-out infinite; }
+@keyframes bird-fly {
+  0%   { transform: translate(-12vw, 0); }
+  50%  { transform: translate(50vw, -16px); }
+  100% { transform: translate(112vw, 6px); }
+}
+@keyframes bird-flap-l { 0%, 100% { transform: rotate(10deg); } 50% { transform: rotate(-16deg); } }
+@keyframes bird-flap-r { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(16deg); } }
+
+/* An occasional shooting star on a clear night — a bright head with a fading
+   trail that streaks down-left, then a long dark pause before the next. */
+.shooting-star {
+  position: absolute; top: 11%; left: 72%;
+  width: 3px; height: 3px; border-radius: 9999px;
+  background: #fff; box-shadow: 0 0 7px 2px rgba(255, 255, 255, 0.85);
+  opacity: 0; will-change: transform, opacity;
+  animation: shoot 15s ease-in infinite;
+}
+.shooting-star::before {
+  content: ""; position: absolute; top: 50%; left: 2px;
+  width: 92px; height: 1.6px; transform-origin: left center;
+  transform: translateY(-50%) rotate(-28deg);
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0));
+}
+@keyframes shoot {
+  0%, 93%  { opacity: 0; transform: translate(0, 0); }
+  94%      { opacity: 1; transform: translate(0, 0); }
+  99%      { opacity: 1; transform: translate(-230px, 122px); }
+  100%     { opacity: 0; transform: translate(-240px, 128px); }
+}
+
+/* The particle canvas fills the ambient layer; drawing is DPR-scaled in JS. */
+.hs-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+/* The WebGL atmosphere (High/Ultra) blends its light additively into the scene
+   beneath it via `screen`, so haze + shafts read as luminous air, not a film. */
+.atmos-canvas { mix-blend-mode: screen; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud-soft, .aurora-band, .fog-layer { animation: none; }
+  .sun-glow { animation: none; opacity: 0.7; }
+  .sun-disc, .sunbeams { animation: none; }
+}
+
+/* On narrow phone screens the welcome column is centred and full-width, so the
+   desktop sun position (top-right, well inset) lands right on the greeting/
+   weather text — and in dark mode that light text becomes unreadable over the
+   amber disc. Tuck the sun up into the very top-right corner, above the text. */
+@media (max-width: 640px) {
+  .sun-disc { top: 14px; right: 14px; width: 52px; height: 52px; }
+  .sunbeams { top: -90px; right: -90px; }
+  .sun-glow {
+    background: radial-gradient(42% 30% at 92% 6%,
+      rgba(255, 168, 56, 0.42), rgba(255, 184, 77, 0.18) 45%, rgba(255, 196, 87, 0) 72%);
+  }
+  /* Moon tucks into the same top-right corner as the sun on phones. */
+  .moon-disc { top: 14px; right: 14px; width: 46px; height: 46px; }
+  .moon-glow {
+    background: radial-gradient(42% 30% at 92% 6%,
+      rgba(150, 175, 230, 0.34), rgba(120, 145, 205, 0.14) 46%, rgba(110, 135, 195, 0) 72%);
+  }
+}
+
+/* The calendar's tapped-day detail line — slides in so a click feels responsive. */
+@keyframes detail-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.animate-detail-in { animation: detail-in calc(0.25s * var(--mo-dur)) ease both; }
+@media (prefers-reduced-motion: reduce) { .animate-detail-in { animation: none; } }
+
+/* Today's-focus place rotation — each new place glides in (fade + gentle slide
+   from the right) instead of snapping, so the ~12s auto-rotation reads as a
+   smooth sliding window. Replayed by keying the content on the place title in
+   DailyFocus.tsx. */
+@keyframes focus-swap { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+.animate-focus-swap { animation: focus-swap calc(0.45s * var(--mo-dur)) var(--mo-ease) both; }
+@media (prefers-reduced-motion: reduce) { .animate-focus-swap { animation: none; } }
+
+/* Welcome-screen cards (almanac, writing prompt, where-you-are). Their
+   background opacity is controlled via --card-alpha (the "Card opacity"
+   setting). A strong backdrop blur lets the beautiful animated scene through
+   as a smooth color wash — you see the ambiance (warm sun, cool rain,
+   seasonal tints) without any distracting shapes behind your text. */
+.welcome-card {
+  background-color: color-mix(in srgb, var(--color-surface) calc(var(--card-alpha, 0.9) * 100%), transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* The shared "frosted panel" surface for the sidebar, reading panes, insight
+   cards, and the editor. A strong blur (18px) turns the animated landscape
+   into a smooth color wash — you keep the full ambiance and seasonal palette
+   behind every panel while text stays crisp. The --card-alpha slider tunes
+   how much of that wash shows through. Surface token → adapts to light/dark. */
+.panel-frost {
+  background-color: color-mix(in srgb, var(--color-surface) calc(var(--card-alpha, 0.9) * 100%), transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.welcome-card-land {
+  background-color: color-mix(in srgb, var(--color-land) calc(var(--card-alpha, 0.9) * 100%), transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Mobile: the full-screen reading/editor panes (new entry, event card, day/trip
+   detail — marked `.pane-frost`) COVER the welcome screen, so the shared frosted
+   look (which honours the low --card-alpha) would let the welcome screen show
+   straight through them — and the blur can glitch on low-end phones. Force those
+   fully opaque with no blur below md.
+
+   `.sidebar-frost` was in this list until 2026-08-08 and is deliberately NOT any
+   more. It was added when a phone's sidebar was a slide-over DRAWER laid over
+   the welcome screen. P1 (MOTION_PLAN.md Part II) deleted that drawer: the
+   sidebar column now IS the welcome screen on a phone (Timeline embeds the
+   welcome dashboard), so forcing it opaque painted a solid slab over the living
+   landscape and the backdrop was invisible on phones entirely. It now honours
+   --card-alpha exactly like desktop — which is what the "Card & panel opacity"
+   slider is for: drag it toward See-through to bring more of the scene up. */
+@media (max-width: 767px) {
+  .pane-frost {
+    background-color: var(--color-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Reshuffle / refresh icons — a playful half-turn on hover. */
+.icon-spin { display: inline-block; transition: transform calc(0.5s * var(--mo-dur)) var(--mo-ease); }
+.icon-spin:hover { transform: rotate(180deg); }
+
+/* Compact formatting-toolbar buttons in the journal editor. Same springy press
+   as .btn so they feel tactile, but sized down for a dense toolbar row. */
+.fmt-btn {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  height: 1.9rem; padding: 0 0.55rem;
+  border: 1px solid var(--color-water); border-radius: 0.45rem;
+  background: var(--color-surface); color: color-mix(in srgb, var(--color-ink) 72%, transparent);
+  font-size: 0.75rem; line-height: 1; white-space: nowrap; cursor: pointer;
+  transition: transform calc(0.24s * var(--mo-dur)) var(--mo-spring),
+              background-color calc(0.15s * var(--mo-dur)) ease, border-color calc(0.15s * var(--mo-dur)) ease, color calc(0.15s * var(--mo-dur)) ease,
+              outline-color var(--mo-fast) var(--mo-ease-out), outline-offset var(--mo-fast) var(--mo-ease-out);
+}
+.fmt-btn:hover { background: var(--color-land); color: var(--color-ink); }
+.fmt-btn:active { transform: scale(0.9); transition-duration: calc(0.06s * var(--mo-dur)); }
+.fmt-btn:focus-visible { outline: 2px solid color-mix(in srgb, var(--color-terracotta) 60%, transparent); outline-offset: 1px; }
+.fmt-btn-active { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-parchment); }
+.fmt-btn-rec { background: #ef4444; border-color: #ef4444; color: #fff; }
+@media (prefers-reduced-motion: reduce) { .fmt-btn, .fmt-btn:active { transform: none; } }
+
+/* ── WYSIWYG editor (TipTap) — see JournalEditor.tsx / AttachmentImage.tsx ──
+   Typography (headings, lists, blockquote) is inherited from the .markdown
+   wrapper around <EditorContent>; these rules handle the editable surface, the
+   empty-state placeholder, and the inline image node with its caption + remove. */
+.rich-editor .ProseMirror { outline: none; min-height: 220px; }
+.rich-editor .ProseMirror > :first-child { margin-top: 0; }
+.rich-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: color-mix(in srgb, var(--color-ink) 38%, transparent);
+  float: left; height: 0; pointer-events: none;
+}
+
+.rich-img { display: inline-block; max-width: 100%; margin: 0.4rem 0; vertical-align: top; }
+.rich-img-frame { position: relative; display: inline-block; }
+.rich-img-frame img { max-height: 18rem; max-width: 100%; display: block; border-radius: 8px; border: 1px solid var(--color-water); }
+.rich-img.ProseMirror-selectednode .rich-img-frame img { outline: 2px solid var(--color-terracotta); outline-offset: 1px; }
+.rich-img-x {
+  position: absolute; top: 6px; right: 6px;
+  display: flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 0.85rem; line-height: 1; cursor: pointer;
+}
+.rich-img-x:hover { background: rgba(0, 0, 0, 0.82); }
+.rich-img-cap {
+  display: block; width: 100%; margin-top: 0.25rem;
+  padding: 0.2rem 0.45rem; font-family: var(--font-sans); font-size: 0.6875rem;
+  color: color-mix(in srgb, var(--color-ink) 70%, transparent);
+  background: var(--color-land); border: 1px solid var(--color-water); border-radius: 6px;
+}
+.rich-img-cap:focus { outline: none; border-color: var(--color-terracotta); }
+
+/* ⓘ info affordance + its click-to-open popover (see InfoTip.tsx). The control
+   it annotates stays visible; this just reveals the "what does this do?" copy on
+   demand so Settings/Data read as controls, not walls of text. */
+.info-dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.15rem; height: 1.15rem; border-radius: 9999px;
+  font-size: 0.72rem; line-height: 1; color: var(--color-ink); opacity: 0.4;
+  cursor: pointer; transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease,
+              outline-color var(--mo-fast) var(--mo-ease-out), outline-offset var(--mo-fast) var(--mo-ease-out);
+}
+.info-dot:hover { opacity: 0.95; color: var(--color-terracotta); background: color-mix(in srgb, var(--color-terracotta) 12%, transparent); }
+.info-dot:focus-visible { outline: 2px solid color-mix(in srgb, var(--color-terracotta) 60%, transparent); outline-offset: 1px; opacity: 0.95; }
+
+/* Gentle hover lift for the welcome info cards — a little depth on interaction
+   without disturbing the frosted, seamless look (no fill change, just a soft
+   shadow + 2px rise). */
+.welcome-card, .welcome-card-land {
+  transition: transform calc(0.2s * var(--mo-dur)) ease, box-shadow calc(0.2s * var(--mo-dur)) ease, border-color calc(0.2s * var(--mo-dur)) ease;
+}
+.welcome-card:hover, .welcome-card-land:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(44, 62, 80, 0.13);
+}
+@media (prefers-reduced-motion: reduce) {
+  .icon-spin { transition: none; }
+  .welcome-card:hover, .welcome-card-land:hover { transform: none; }
+}
+
+/* ===== Layered landscape scene (welcome screen, see HillsideScene.tsx) =====
+   Distant mountain ranges, a forest tree-line, rolling hills and a flowing
+   river, built from three parallax planes of plain SVG. Anchored to the foot of
+   the window, below the z-10 content; purely decorative. All colour comes from
+   the --hs-* custom properties, keyed to the season just below, so changing
+   season cross-fades the whole palette (the `transition: fill` on each shape).
+   Motion amplitude/speed comes from --sway-deg / --sway-dur, which the parent
+   sets from the real wind. */
+.hillside {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: min(56vh, 440px);
+  pointer-events: none; overflow: hidden; z-index: 0;
+  transition: filter 1.4s ease;
+  /* Default palette (spring); each .season-* block overrides these. */
+  --hs-far: #B9C7CE;      --hs-mid: #93AEB8;      --hs-forest: #5A8A54;
+  --hs-hill-back: #8FC072; --hs-hill-mid: #77B25C; --hs-hill-front: #5E9E49;
+  --hs-leaf: #7CC15A;     --hs-leaf-b: #64AC49;   --hs-conifer: #40774A;
+  --hs-trunk: #7A5540;
+  --hs-grass-top: #7BC257; --hs-grass-bot: #519241;
+  --hs-water: #8CCDE4;    --hs-water-lo: #4E9BC0;
+  --hs-bloom-a: #F2A6C2;  --hs-bloom-b: #F6C86B;  --hs-bloom-c: #C79BE0; --hs-bloom-core: #FFF0B0;
+}
+
+/* ---- Seasonal palettes (cross-fade via each shape's `transition: fill`) ---- */
+.hillside.season-spring {
+  --hs-far: #B9C7CE;      --hs-mid: #93AEB8;      --hs-forest: #5A8A54;
+  --hs-hill-back: #8FC072; --hs-hill-mid: #77B25C; --hs-hill-front: #5E9E49;
+  --hs-leaf: #7CC15A;     --hs-leaf-b: #64AC49;   --hs-conifer: #40774A;
+  --hs-trunk: #7A5540;    --hs-grass-top: #7BC257; --hs-grass-bot: #519241;
+  --hs-water: #8CCDE4;    --hs-water-lo: #4E9BC0;
+  --hs-bloom-a: #F2A6C2;  --hs-bloom-b: #F6C86B;  --hs-bloom-c: #C79BE0; --hs-bloom-core: #FFF0B0;
+}
+.hillside.season-summer {
+  --hs-far: #9DB6C4;      --hs-mid: #7C9AAE;      --hs-forest: #3F6B47;
+  --hs-hill-back: #6E9B5E; --hs-hill-mid: #588A4C; --hs-hill-front: #47773E;
+  --hs-leaf: #4E8B44;     --hs-leaf-b: #3E7638;   --hs-conifer: #2F5E39;
+  --hs-trunk: #6B4A34;    --hs-grass-top: #5A9A46; --hs-grass-bot: #3C6E33;
+  --hs-water: #6FB6D8;    --hs-water-lo: #3E86AE;
+  --hs-bloom-a: #E8B04B;  --hs-bloom-b: #E0685A;  --hs-bloom-c: #D98FB0; --hs-bloom-core: #FBE7A6;
+}
+.hillside.season-autumn {
+  --hs-far: #BBB0A6;      --hs-mid: #A9968A;      --hs-forest: #7A5A34;
+  --hs-hill-back: #A98A4E; --hs-hill-mid: #97743C; --hs-hill-front: #815F30;
+  --hs-leaf: #D98A3C;     --hs-leaf-b: #C4552E;   --hs-conifer: #4E6B3C;
+  --hs-trunk: #5E4028;    --hs-grass-top: #B79A4C; --hs-grass-bot: #8A6B32;
+  --hs-water: #7FA8C0;    --hs-water-lo: #4E7E9C;
+  --hs-bloom-a: #E08A3C;  --hs-bloom-b: #C4552E;  --hs-bloom-c: #E0B24C; --hs-bloom-core: #F6D98C;
+}
+.hillside.season-winter {
+  --hs-far: #C9D4DE;      --hs-mid: #AEBECC;      --hs-forest: #5E7A6E;
+  --hs-hill-back: #9FB2B4; --hs-hill-mid: #8AA0A2; --hs-hill-front: #74898C;
+  --hs-leaf: #8CA0A0;     --hs-leaf-b: #7C9090;   --hs-conifer: #3E5E48;
+  --hs-trunk: #5A4638;    --hs-grass-top: #A9BAB4; --hs-grass-bot: #7E938C;
+  --hs-water: #AFC9D6;    --hs-water-lo: #7FA6B8;
+  --hs-bloom-a: #C9D4DE;  --hs-bloom-b: #C9D4DE;  --hs-bloom-c: #C9D4DE; --hs-bloom-core: #E8F0F6;
+}
+
+/* ---- Depth planes (static — the scene stays alive via its own motion, not the
+   pointer; cursor parallax was removed as too much) ---- */
+.hs-plane { position: absolute; inset: 0; }
+.hs-plane > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ---- Terrain fills (each cross-fades on a season change) ---- */
+.hs-mtn-far    { fill: var(--hs-far);       transition: fill 1.4s ease; }
+.hs-mtn-mid    { fill: var(--hs-mid);       transition: fill 1.4s ease; }
+.hs-forest     { fill: var(--hs-forest);    transition: fill 1.4s ease; }
+.hs-hill-back  { fill: var(--hs-hill-back); transition: fill 1.4s ease; }
+.hs-hill-mid   { fill: var(--hs-hill-mid);  transition: fill 1.4s ease; }
+.hs-hill-front { fill: var(--hs-hill-front); transition: fill 1.4s ease; }
+
+/* Per-weather colour grading over the whole scene. */
+.hillside.hs-clouds { filter: saturate(0.9) brightness(0.95); }
+.hillside.hs-rain   { filter: saturate(0.74) brightness(0.82); }
+.hillside.hs-storm  { filter: saturate(0.62) brightness(0.68); }
+.hillside.hs-snow   { filter: saturate(0.8) brightness(1.03); }
+
+/* ---- Trees ---- */
+.hs-tree-svg { display: block; overflow: visible; }
+.hs-trunk    { fill: var(--hs-trunk);   transition: fill 1.4s ease; }
+.hs-conifer  { fill: var(--hs-conifer); transition: fill 1.4s ease; }
+.hs-leaf     { fill: var(--hs-leaf);    transition: fill 1.4s ease; }
+.hs-leaf-b   { fill: var(--hs-leaf-b);  transition: fill 1.4s ease; }
+.hs-branches path { stroke: var(--hs-trunk); stroke-width: 2; transition: stroke 1.4s ease; }
+.hs-snow-dust polygon { fill: rgba(248, 251, 255, 0.9); }
+.hs-snow-dust-fill { fill: rgba(248, 251, 255, 0.82); }
+.hs-stem { stroke: var(--hs-grass-bot); }
+
+.hs-deco { position: absolute; transform-origin: 50% 100%; line-height: 1; }
+.hs-tree { animation: hs-sway var(--sway-dur, 4s) ease-in-out infinite; }
+
+/* Grass blades — the row that "the wind goes through". */
+.hs-grass {
+  position: absolute; bottom: 0; width: 3px; border-radius: 3px 3px 0 0;
+  transform-origin: 50% 100%;
+  background: linear-gradient(to top, var(--hs-grass-bot), var(--hs-grass-top));
+  transition: background 1.4s ease;
+  animation: hs-sway var(--sway-dur, 4s) ease-in-out infinite;
+}
+
+/* Wind-driven sway — amplitude (--sway-deg) and speed (--sway-dur) are set by
+   the parent from the real wind, so a gale really does lean the trees over. */
+@keyframes hs-sway {
+  0%, 100% { transform: rotate(calc(var(--sway-deg, 5deg) * -1)); }
+  50%      { transform: rotate(var(--sway-deg, 5deg)); }
+}
+@keyframes hs-bloom { 0% { transform: scale(0); opacity: 0; } 65% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes hs-flash {
+  0%, 90%, 100% { opacity: 0; }
+  91% { opacity: 0.85; } 92.5% { opacity: 0.1; } 94% { opacity: 0.7; } 96% { opacity: 0; }
+}
+@keyframes hs-shimmer { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.85; } }
+@keyframes hs-flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.4); } }
+@keyframes hs-flutter {
+  0%   { transform: translate(0, 0) rotate(-6deg); }
+  25%  { transform: translate(24vw, -30px) rotate(6deg); }
+  50%  { transform: translate(48vw, 6px) rotate(-6deg); }
+  75%  { transform: translate(70vw, -22px) rotate(6deg); }
+  100% { transform: translate(92vw, 0) rotate(-6deg); }
+}
+
+/* Flowers: outer span blooms in once; inner span sways. Two layers so the
+   transforms don't fight. */
+.hs-flower { animation: hs-bloom 1.2s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.hs-fsway  { display: inline-block; transform-origin: 50% 100%; animation: hs-sway var(--sway-dur, 4s) ease-in-out infinite; }
+.hs-flower-svg { display: block; }
+
+/* Flowing river: a soft glint drifts over it; frozen (icy palette) in winter. */
+.hs-glint { fill: rgba(255, 255, 255, 0.5); animation: hs-shimmer 3.6s ease-in-out infinite; }
+.hs-river-ice .hs-glint { opacity: 0.25; animation: none; }
+
+/* A drifting butterfly on warm sunny days. */
+.hs-butterfly {
+  position: absolute; bottom: 108px; left: 1%;
+  animation: hs-flutter 20s ease-in-out infinite;
+}
+.hs-bfly-wings { transform-origin: center; animation: hs-flap 0.28s ease-in-out infinite; }
+
+/* The sun/moon reflected on the lake — a stacked column of glints that shimmers.
+   Warm gold by day, cool pale-blue by night. Blended so it reads as light on
+   water, not a solid shape. */
+.hs-reflect ellipse { mix-blend-mode: screen; animation: hs-shimmer 2.8s ease-in-out infinite; }
+.hs-reflect ellipse:nth-child(2) { animation-delay: 0.5s; }
+.hs-reflect ellipse:nth-child(3) { animation-delay: 1s; }
+.hs-reflect-day ellipse   { fill: rgba(255, 214, 140, 0.85); }
+.hs-reflect-night ellipse { fill: rgba(206, 222, 255, 0.7); }
+
+/* A bee bobbing over the flowers — a looping wander with a quick wing blur. */
+.hs-bee {
+  position: absolute; transform-origin: 50% 50%;
+  animation-name: hs-bee-fly; animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite; will-change: transform;
+}
+.hs-bee-svg { display: block; overflow: visible; }
+.hs-bee-wing { transform-box: fill-box; transform-origin: 50% 100%; animation: hs-bee-flap 0.09s ease-in-out infinite; }
+@keyframes hs-bee-fly {
+  0%   { transform: translate(0, 0) scaleX(1); }
+  20%  { transform: translate(34px, -20px) scaleX(1); }
+  40%  { transform: translate(58px, -6px) scaleX(1); }
+  55%  { transform: translate(40px, -26px) scaleX(-1); }
+  75%  { transform: translate(6px, -12px) scaleX(-1); }
+  100% { transform: translate(0, 0) scaleX(1); }
+}
+@keyframes hs-bee-flap { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.3); } }
+
+/* A white flash from the top for thunderstorms. */
+.hs-lightning {
+  position: absolute; inset: 0; mix-blend-mode: screen;
+  background: radial-gradient(62% 52% at 68% 0%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 70%);
+  animation: hs-flash 9s linear infinite;
+}
+
+/* A shimmering wet sheen at the foot when it's raining. */
+.hs-puddle {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 16px;
+  background: linear-gradient(to top, rgba(150, 180, 210, 0.45), rgba(150, 180, 210, 0));
+  animation: hs-shimmer 3.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-grass, .hs-tree, .hs-flower, .hs-fsway, .hs-butterfly, .hs-bfly-wings, .hs-puddle, .hs-glint,
+  .hs-reflect ellipse, .hs-bee, .hs-bee-wing { animation: none; }
+  .hs-plane { transition: none; }
+  .hs-lightning { display: none; }
+}
+
+/* Rendered Markdown — a calm, notebook-like reading style for journal entries. */
+.markdown {
+  font-family: var(--font-serif);
+  color: var(--color-ink);
+  line-height: 1.7;
+}
+.markdown > :first-child { margin-top: 0; }
+.markdown h1, .markdown h2, .markdown h3, .markdown h4 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+}
+.markdown h1 { font-size: 1.6em; }
+.markdown h2 { font-size: 1.35em; }
+.markdown h3 { font-size: 1.15em; }
+.markdown h4 { font-size: 1em; }
+.markdown p { margin: 0.75em 0; }
+.markdown ul, .markdown ol { margin: 0.75em 0; padding-left: 1.5em; }
+.markdown ul { list-style: disc; }
+.markdown ol { list-style: decimal; }
+.markdown li { margin: 0.25em 0; }
+.markdown li::marker { color: var(--color-terracotta); }
+.markdown blockquote {
+  border-left: 3px solid var(--color-terracotta);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: color-mix(in srgb, var(--color-ink) 70%, transparent);
+  font-style: italic;
+}
+.markdown a { color: var(--color-terracotta); text-decoration: underline; }
+.markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--color-land);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.markdown pre {
+  font-family: var(--font-mono);
+  background: var(--color-land);
+  padding: 0.9em 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1em 0;
+  border: 1px solid var(--color-water);
+}
+.markdown pre code { background: none; padding: 0; font-size: 0.85em; }
+.markdown hr { border: none; border-top: 1px solid var(--color-water); margin: 1.5em 0; }
+.markdown img { max-width: 100%; border-radius: 8px; margin: 0.75em 0; }
+.markdown table { border-collapse: collapse; margin: 1em 0; width: 100%; }
+.markdown th, .markdown td { border: 1px solid var(--color-water); padding: 0.4em 0.7em; text-align: left; }
+.markdown th { background: var(--color-land); font-weight: 700; }
+
+/* ═════════════════════ Typographic scale & vertical rhythm ═════════════════════
+   Added 2026-08-05 as part of the "premium feel" pass.
+
+   Before this, headings and body copy were sized ad hoc with Tailwind utilities at
+   each call site, so the same visual level could be text-lg in one pane and
+   text-[17px] in another. These tokens give one modular scale (ratio ~1.2, the
+   restrained end — this is a reading app, not a landing page) that everything can
+   refer to.
+
+   Sizes are `clamp()`d so they breathe between a phone and a desktop without a
+   media query, and every step is expressed in `rem`, which means they still scale
+   from the user's "Text size" setting (which sets the html font-size). That
+   combination is deliberate: fluid for the viewport, proportional for the user's
+   own preference. */
+:root {
+  --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.83rem);
+  --step-0:  clamp(0.94rem, 0.92rem + 0.1vw, 1rem);
+  --step-1:  clamp(1.09rem, 1.05rem + 0.2vw, 1.2rem);
+  --step-2:  clamp(1.28rem, 1.2rem + 0.35vw, 1.44rem);
+  --step-3:  clamp(1.5rem, 1.38rem + 0.55vw, 1.73rem);
+  --step-4:  clamp(1.76rem, 1.57rem + 0.85vw, 2.07rem);
+
+  /* One spacing unit, so gaps between blocks are multiples of a single value
+     rather than an assortment of pixel guesses. */
+  --rhythm: 1.15rem;
+
+  /* Optical tracking: large type needs tightening, small caps-y labels need air.
+     Applying these consistently is most of what separates "typeset" from "typed". */
+  --tracking-display: -0.018em;
+  --tracking-label: 0.055em;
+}
+
+/* Display headings — the serif voice, tightened and balanced. `text-wrap: balance`
+   stops a two-word orphan on the second line of a heading, which is the single
+   most visible typesetting flaw in the app's cards. */
+.u-display {
+  font-family: var(--font-serif);
+  letter-spacing: var(--tracking-display);
+  line-height: 1.18;
+  text-wrap: balance;
+}
+.u-display-lg { font-size: var(--step-4); }
+.u-display-md { font-size: var(--step-3); }
+.u-display-sm { font-size: var(--step-2); }
+
+/* Small uppercase section labels ("TIMELINE", "PLACES OF INTEREST"). */
+.u-label {
+  font-size: var(--step--1);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--color-ink) 55%, transparent);
+}
+
+/* Reading prose: a measure of ~66 characters, which is the comfortable range for
+   continuous text. Without a cap, journal entries stretch the full width of a
+   desktop pane and become noticeably harder to read. */
+.u-prose { font-size: var(--step-0); line-height: 1.65; }
+.u-measure { max-width: 66ch; }
+
+/* `text-wrap: pretty` asks the browser to avoid orphans across a paragraph;
+   ignored where unsupported, so it's a pure enhancement. */
+.markdown p { text-wrap: pretty; }
+
+/* Tabular figures wherever numbers sit in a column or change in place (stats,
+   counters, timers) so they don't jitter as the digits change. */
+.u-numeric { font-variant-numeric: tabular-nums; }
+
+/* ═════════════════════════════ Skeleton loaders ═════════════════════════════
+   The base `.skeleton` shimmer already existed; these are the composed SHAPES
+   that stand in for real content while a lookup is in flight. The point is that
+   the placeholder occupies the same space the content will, so nothing jumps when
+   it arrives — a spinner that collapses to a different size is worse than no
+   placeholder at all. */
+.skeleton-line {
+  height: 0.72em;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-land) 25%, #e8e3da 37%, var(--color-land) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+.dark .skeleton-line,
+.dark .skeleton-block {
+  background: linear-gradient(90deg, var(--color-land) 25%, #2C343D 37%, var(--color-land) 63%);
+  background-size: 200% 100%;
+}
+.skeleton-block {
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--color-land) 25%, #e8e3da 37%, var(--color-land) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+/* Staggered starts so a stack of lines reads as one sweep rather than a strobe. */
+.skeleton-line:nth-child(2), .skeleton-block:nth-child(2) { animation-delay: 0.12s; }
+.skeleton-line:nth-child(3), .skeleton-block:nth-child(3) { animation-delay: 0.24s; }
+.skeleton-line:nth-child(4), .skeleton-block:nth-child(4) { animation-delay: 0.36s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line, .skeleton-block { animation: none; }
+}
+
+/* ══════════════════════════ View Transitions ══════════════════════════
+   Cross-fades between panes (welcome → editor → reader → day detail) using the
+   View Transitions API. This is the strongest single "native app" signal available
+   for the effort, and it degrades perfectly: in a browser without support,
+   `startViewTransition` is simply absent and the callback runs synchronously, so
+   the pane swaps exactly as it does today.
+
+   Kept deliberately restrained — a quick cross-fade with a few pixels of travel.
+   A dramatic slide would fight the ambient backdrop and get old fast when you
+   switch panes dozens of times in a session. */
+@keyframes vt-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vt-fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+::view-transition-old(root) {
+  animation: vt-fade-out calc(160ms * var(--mo-dur)) var(--mo-ease-in) both;
+}
+::view-transition-new(root) {
+  animation: vt-fade-in calc(220ms * var(--mo-dur)) var(--mo-ease) both;
+}
+
+/* The map is a WebGL canvas; snapshotting and cross-fading it is expensive and
+   can flash. Opt it out so it simply persists across the transition. */
+.map-shell {
+  view-transition-name: map-shell;
+
+  /* M15: the mini↔full-screen grow/shrink, on the spring curve rather than a
+     plain ease-out — it's a large element, so a SMALL spring reads as weight
+     rather than a toy. Was `transition-all duration-300 ease-out` (a Tailwind
+     utility triplet); moved to a hand-written rule because Tailwind's
+     duration/easing utilities are fixed values and can't reference --mo-*. */
+  transition: all var(--mo-slow) var(--mo-spring);
+
+  /* Bottom control tiers for the full-screen map. A phone is too narrow for the
+     layer toggles (bottom-left), the coordinate readout (bottom-centre) and the
+     locate button (bottom-right) to share one row — the toggles used to land on
+     top of the coordinates. So each group gets its own tier, stacked upward from
+     the safe-area inset. Desktop has the width for a single row and keeps it.
+     Since P1 (the phone UI redraft), the floor these tiers stack up FROM is the
+     fixed bottom tab bar (--tabbar-clear — which already bakes in the safe-area
+     inset itself, and is 0 on desktop) rather than the raw safe-area inset, or
+     these controls would land underneath the bar — the exact class of overlap
+     bug §7 already warns about. */
+  --map-tier-1: calc(var(--tabbar-clear) + 1rem);
+  --map-tier-2: calc(var(--tabbar-clear) + 1rem + 3rem);
+  --map-tier-3: calc(var(--tabbar-clear) + 1rem + 6rem);
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-shell { transition: none; }
+}
+
+/* While the map is the small corner card, clicking anywhere on it opens it
+   full-screen (MainPane adds `map-clickable`, Map.tsx handles the click). Say so
+   with the cursor. MapLibre's own stylesheet sets `cursor: grab` on the canvas
+   CONTAINER, so the override has to target that same element to win — an inline
+   style on the canvas, or an inherited value from an ancestor, does not. */
+.map-shell.map-clickable .maplibregl-canvas-container.maplibregl-interactive,
+.map-shell.map-clickable .maplibregl-canvas { cursor: pointer; }
+::view-transition-group(map-shell) { animation-duration: 0s; }
+::view-transition-old(map-shell),
+::view-transition-new(map-shell) { animation: none; mix-blend-mode: normal; }
+
+/* Respect the user's motion preference: no cross-fade, just an instant swap. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}
+
+/* ═══════════════ Command palette, toasts & reading progress ═══════════════
+   Added 2026-08-05 (premium pass, round 2). All three are built to read correctly
+   on BOTH form factors — the phone layouts are not afterthoughts:
+     · palette — bottom sheet on a phone (input at the top of the sheet, above the
+       on-screen keyboard), centred dialog on a desktop
+     · toasts  — full-width along the bottom above the safe-area inset on a phone
+       (thumb-reachable, because the Undo action is the point), bottom-right on a
+       desktop
+     · progress — a hairline at the top of the reading pane, identical on both */
+
+/* ── Command palette ── */
+.palette-panel {
+  /* A sheet rising from the bottom on a phone; a dialog dropping in on desktop.
+     Both are short and eased-out so the palette feels instant rather than staged. */
+  animation: palette-rise calc(0.2s * var(--mo-dur)) var(--mo-ease) both;
+}
+@keyframes palette-rise {
+  from { opacity: 0; transform: translateY(16px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (min-width: 640px) {
+  @keyframes palette-rise {
+    from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
+
+/* Keyboard hints in the palette footer. */
+.palette-panel kbd {
+  display: inline-block;
+  min-width: 1.25em;
+  padding: 0.05em 0.3em;
+  margin-right: 0.15em;
+  border: 1px solid var(--color-water);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--color-land);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* ── Toasts ── */
+.toast-row {
+  animation: toast-in calc(0.24s * var(--mo-dur)) var(--mo-ease) both;
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (min-width: 640px) {
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+}
+
+/* ── Reading progress ──
+   A hairline showing how far through a long entry you are. `scaleX` on a
+   transform-only property so it never triggers layout while scrolling. */
+.read-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--color-terracotta), #E0A070);
+  transition: transform calc(0.08s * var(--mo-dur)) linear;
+  pointer-events: none;
+  z-index: 5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .palette-panel, .toast-row { animation: none; }
+  .read-progress { transition: none; }
+}
+
+/* ═══════════════════ Motion pass — shared primitives ═══════════════════
+   Added 2026-08-07 (MOTION_PLAN.md Foundation §3.6). Backing CSS for the
+   components/hooks that every subsequent wave of the animation pass builds on. */
+
+/* ── <Disclosure> — height-animated open/close, no JS measurement ──
+   `grid-template-rows: 0fr → 1fr` on the wrapper, `min-height: 0` on the single
+   child, is the standard trick for animating to "auto" height without a
+   ResizeObserver. This is the one shared primitive that animates a
+   non-compositor property (grid-template-rows) — accepted because the
+   alternative (measuring heights in JS) is worse and these panels are small. */
+.mo-disclosure {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows var(--mo-slow) var(--mo-ease),
+              opacity var(--mo-base) var(--mo-ease-out);
+}
+.mo-disclosure.is-open { grid-template-rows: 1fr; opacity: 1; }
+.mo-disclosure > * { overflow: hidden; min-height: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .mo-disclosure { transition: none; }
+}
+
+/* ── <ProgressBar> — one shared determinate bar (index.css, used from Wave 5
+   onward). Animates `transform: scaleX()`, never `width`, so a progress update
+   never triggers layout. */
+.mo-progress-track {
+  position: relative;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: var(--color-water);
+  overflow: hidden;
+}
+.mo-progress-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-terracotta);
+  transform-origin: left center;
+  transform: scaleX(var(--mo-progress, 0));
+  transition: transform var(--mo-base) var(--mo-ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mo-progress-fill { transition: none; }
+}
+
+/* ── <AsyncButton> — the shared "working → done" treatment (M6). A hairline
+   indeterminate edge while working, a label crossfade on every phase change, a
+   self-drawing checkmark on success, and a colour swap for done/error — one
+   component instead of an ad-hoc disabled+label-swap per button. Wraps any
+   existing `.btn`/`.btn-*` combination via `className`, so it never needs its
+   own visual system. */
+.async-btn { position: relative; overflow: hidden; }
+.async-btn .async-btn-prog {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.85);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+  opacity: 0;
+}
+.async-btn[aria-busy="true"] .async-btn-prog {
+  animation: async-prog-run calc(1.1s * var(--mo-dur)) cubic-bezier(0.3, 0.6, 0.3, 1) infinite;
+}
+@keyframes async-prog-run {
+  0%   { transform: scaleX(0); opacity: 0.9; }
+  70%  { transform: scaleX(0.85); opacity: 0.9; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+.async-btn-label {
+  display: inline-block;
+  animation: async-label-in calc(0.18s * var(--mo-dur)) var(--mo-ease-out) both;
+}
+@keyframes async-label-in {
+  from { opacity: 0; transform: translateY(calc(4px * var(--mo-amp))); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.async-btn-tick {
+  width: 0.875rem;
+  height: 0.875rem;
+  display: inline-block;
+  vertical-align: -0.125rem;
+}
+.async-btn-tick path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  animation: async-tick-draw calc(0.42s * var(--mo-dur)) var(--mo-ease-out) both;
+}
+@keyframes async-tick-draw { to { stroke-dashoffset: 0; } }
+/* Placed after .btn-primary/.btn-secondary/.btn-danger so equal-specificity
+   cascade order — not !important — is what lets these win while a button is
+   done/erroring. */
+.async-btn-done {
+  background: var(--color-forest);
+  border-color: var(--color-forest);
+  color: #fff;
+}
+.async-btn-error {
+  background: color-mix(in srgb, #dc2626 12%, var(--color-surface));
+  border-color: #dc2626;
+  color: #e0584a;
+}
+@media (prefers-reduced-motion: reduce) {
+  .async-btn[aria-busy="true"] .async-btn-prog { animation: none; opacity: 0.9; transform: scaleX(0.6); }
+  .async-btn-label { animation: none; }
+  .async-btn-tick path { animation: none; stroke-dashoffset: 0; }
+}
+
+/* ═══════════════════ Motion pass — Wave 2 (exits everywhere, M7–M11) ═══════════════════
+   Foundation (above) built the primitives; this section is the CSS vocabulary Wave 2's
+   component wiring reaches for. */
+
+/* ── Generic <Presence> enter/exit pair (M7) ──
+   For conditional renders with no bespoke entrance of their own (cards already have
+   animate-fade-in-up/entry-out, toasts have their own pair below). Exits run at the
+   fast token and 0.6× the entrance, per §2.2's "exits are faster" rule. */
+@keyframes mo-rise-in {
+  from { opacity: 0; transform: translateY(var(--mo-rise)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes mo-fade-out {
+  to { opacity: 0; transform: translateY(calc(var(--mo-rise) * -0.5)) scale(0.98); }
+}
+.mo-rise-in  { animation: mo-rise-in  var(--mo-base) var(--mo-ease)    both; }
+.mo-fade-out { animation: mo-fade-out var(--mo-fast) var(--mo-ease-in) both; pointer-events: none; }
+
+/* Opacity-only variant — for elements whose own `transform` is already doing
+   functional work (the reading-progress hairline's scaleX, a dialog wrapper that
+   must not become a `position: fixed` containing block via an animated transform
+   on an ancestor). No translateY, so it never fights another rule for the
+   `transform` property. */
+@keyframes mo-fade-in-plain { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mo-fade-out-plain { to { opacity: 0; } }
+.mo-fade-in-plain  { animation: mo-fade-in-plain  var(--mo-base) var(--mo-ease-out) both; }
+.mo-fade-out-plain { animation: mo-fade-out-plain var(--mo-fast) var(--mo-ease-in)  both; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mo-rise-in, .mo-fade-out, .mo-fade-in-plain, .mo-fade-out-plain { animation: none; }
+}
+
+/* ── Toast exit + stack glide (M7) ──
+   `.toast-row` gains a permanent transform transition so the FLIP nudge applied in
+   ToastHost.tsx (measure the old position, invert, release) animates the OTHER rows
+   sliding into a dismissed toast's gap instead of snapping. `.toast-exit` is the
+   dismissed row's own fade — placed after `.toast-row` so its `animation` wins the
+   cascade the same way `.async-btn-done` wins over `.btn-primary`. */
+.toast-row { transition: transform var(--mo-base) var(--mo-ease); }
+@keyframes toast-out { to { opacity: 0; transform: translateY(4px) scale(0.96); } }
+.toast-exit { animation: toast-out var(--mo-fast) var(--mo-ease-in) both; pointer-events: none; }
+
+/* ── Dialog exits (M7) ──
+   Entrance tokens (`animate-dialog-fade`/`animate-dialog-pop`) were fixed in the
+   Foundation; these are their exit counterparts for CommandPalette's animated
+   close. Deliberately plain classes, not routed through Tailwind's `--animate-*`
+   theme mechanism — that indirection is exactly what caused the Foundation bug
+   (§3.2), so new dialog keyframes are hand-written CSS here like every other
+   `animate-*` class in this file. */
+@keyframes dialog-fade-out { to { opacity: 0; } }
+@keyframes dialog-pop-out { to { opacity: 0; transform: translateY(6px) scale(0.97); } }
+.dialog-fade-out { animation: dialog-fade-out var(--mo-fast) var(--mo-ease-in) both; }
+.dialog-pop-out  { animation: dialog-pop-out  var(--mo-fast) var(--mo-ease-in) both; }
+
+/* ── <IconSwap> — crossfade between two glyphs instead of an instant swap (M9) ──
+   Both glyphs stay mounted, stacked in the same grid cell via `grid-area: 1 / 1`,
+   so there's no layout jump between differently-sized characters. */
+.mo-icon-swap { position: relative; display: inline-grid; place-items: center; }
+.mo-icon-swap > span {
+  grid-area: 1 / 1;
+  transition: opacity var(--mo-fast) var(--mo-ease-out), transform var(--mo-fast) var(--mo-ease-out);
+}
+.mo-icon-swap > .is-hidden { opacity: 0; transform: rotate(-40deg) scale(0.6); }
+.mo-icon-swap > .is-shown  { opacity: 1; transform: rotate(0deg) scale(1); }
+
+/* A rotating chevron token, so `SearchView.tsx`'s disclosure arrow (which already
+   rotated, pre-Wave-2 — the good example M9 points to) reads off the same
+   `--mo-*` timing as everything else instead of a bare Tailwind default. */
+.mo-chevron { display: inline-block; transition: transform var(--mo-fast) var(--mo-ease-out); }
+.mo-chevron.is-open { transform: rotate(90deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-row { transition: none; }
+  .toast-exit { animation: none; }
+  .dialog-fade-out, .dialog-pop-out { animation: none; }
+  .mo-icon-swap > span, .mo-chevron { transition: none; }
+}
+
+/* ── Segmented control — sliding pill (M8) ──
+   `.segmented` is the row of option buttons; `.segmented-indicator` is an
+   absolutely-positioned pill moved via `useSlidingIndicator`'s measured rect,
+   read off two custom properties the same way `<ProgressBar>` reads `--mo-progress`.
+   When the row WRAPS (the phone's four-basemap case), `SettingsView.tsx` never
+   renders the indicator at all and every button falls back to the plain
+   background-colour swap it had before Wave 2 — chosen over a two-axis indicator
+   because a pill that must jump between rows reads as more broken than a colour
+   flip, not less. */
+.segmented { position: relative; }
+.segmented-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--seg-w, 0px);
+  transform: translateX(var(--seg-x, 0px));
+  transition: transform var(--mo-base) var(--mo-spring), width var(--mo-base) var(--mo-spring);
+  background: var(--color-ink);
+  z-index: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .segmented-indicator { transition: none; }
+}
+
+/* ── Active-state wipe (M10) ──
+   `.btn-active` / `.fmt-btn-active` / the search filter chips (`.mo-chip-active`)
+   previously swapped straight to their solid fill with no transition. A `::before`
+   layer now grows in from the pressed edge (`scaleX`, `transform-origin: left`)
+   instead of an instant flip — the element's own colour/border are set instantly so
+   there's no unstyled flash, but the FILL itself visibly wipes across. Retriggers
+   automatically whenever the active class is freshly added (a CSS animation restarts
+   whenever an element starts newly matching its selector), and is a no-op for an
+   element that mounts with the class already present, same as any other `animate-*`
+   entrance in this file. */
+.btn-active, .fmt-btn-active, .mo-chip-active {
+  position: relative;
+  background: transparent;
+}
+.btn-active, .fmt-btn-active { color: var(--color-parchment); border-color: var(--color-ink); }
+.btn-active::before, .fmt-btn-active::before, .mo-chip-active::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  transform-origin: left center;
+  animation: mo-wipe-in var(--mo-fast) var(--mo-ease-out) both;
+}
+.btn-active::before, .fmt-btn-active::before { background: var(--color-ink); }
+.mo-chip-active::before { background: var(--color-terracotta); }
+@keyframes mo-wipe-in {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-active::before, .fmt-btn-active::before, .mo-chip-active::before { animation: none; }
+}
+
+/* ═══════════════════ Motion pass — Wave 3 (navigation, M12–M15) ═══════════════════ */
+
+/* ── Sidebar tabs — travelling underline (M12) ──
+   A thin bar rather than `.segmented-indicator`'s solid pill (M8) — the tabs
+   already carry their own `.btn-active` fill, so a second solid fill in the
+   same spot would be redundant; the underline sits just past the button's own
+   bottom edge instead, as a secondary directional cue. */
+.sidebar-tab-underline {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  height: 2px;
+  width: var(--tab-w, 0px);
+  transform: translateX(var(--tab-x, 0px));
+  background: var(--color-terracotta);
+  border-radius: 9999px;
+  transition: transform var(--mo-base) var(--mo-spring), width var(--mo-base) var(--mo-spring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-tab-underline { transition: none; }
+}
+
+/* ── Sidebar pane — directional slide (M12) ──
+   The entering pane slides in from the direction of travel; the leaving one
+   slides out the same way, faster (the 0.6× exit rule, §2.2). */
+@keyframes sidebar-in-fwd  { from { opacity: 0; transform: translateX(var(--mo-slide)); } to { opacity: 1; transform: translateX(0); } }
+@keyframes sidebar-out-fwd { to   { opacity: 0; transform: translateX(calc(var(--mo-slide) * -1)); } }
+@keyframes sidebar-in-back  { from { opacity: 0; transform: translateX(calc(var(--mo-slide) * -1)); } to { opacity: 1; transform: translateX(0); } }
+@keyframes sidebar-out-back { to   { opacity: 0; transform: translateX(var(--mo-slide)); } }
+.sidebar-pane-in-fwd   { animation: sidebar-in-fwd   var(--mo-base) var(--mo-ease)    both; }
+.sidebar-pane-out-fwd  { animation: sidebar-out-fwd  var(--mo-fast) var(--mo-ease-in) both; pointer-events: none; }
+.sidebar-pane-in-back  { animation: sidebar-in-back  var(--mo-base) var(--mo-ease)    both; }
+.sidebar-pane-out-back { animation: sidebar-out-back var(--mo-fast) var(--mo-ease-in) both; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-pane-in-fwd, .sidebar-pane-out-fwd, .sidebar-pane-in-back, .sidebar-pane-out-back { animation: none; }
+}
+
+/* ═══════════════ Phone UI redraft — MOTION_PLAN.md Part II, P1 ═══════════════ */
+
+/* How much bottom-of-screen real estate the fixed BottomTabBar.tsx claims on a
+   phone — 0 on desktop, where the bar doesn't render. Every phone element that
+   floats near the bottom of the screen (the map's own --map-tier-* controls,
+   the mobile map FAB, and every full-screen detail pane via .pane-frost) reads
+   this ONE token so the bar's height only has to be kept in sync in one place.
+   Keep the 3.5rem here matched to BottomTabBar.tsx's own `min-h-14`. */
+:root { --tabbar-clear: 0px; }
+@media (max-width: 767px) {
+  :root { --tabbar-clear: calc(3.5rem + env(safe-area-inset-bottom)); }
+}
+
+/* Detail panes (EventCard/DayDetail/TripDetail/JournalEditor, all wrapped in
+   .pane-frost by MainPane.tsx) need this same clearance so their last row of
+   content/buttons isn't hidden behind the fixed tab bar. No media query
+   needed here — --tabbar-clear is already 0 on desktop. (Sidebar.tsx's own
+   root gets the equivalent reservation directly via a Tailwind arbitrary
+   value, since it isn't a `.pane-frost`.) */
+.pane-frost { padding-bottom: var(--tabbar-clear); }
+
+/* ── Bottom tab bar — travelling indicator (P1) ──
+   Same measured-rect technique as `.sidebar-tab-underline` (M12), mirrored to
+   sit above the icons instead of below the labels — reuses useSlidingIndicator,
+   a second independent call site exactly as that hook is designed for. */
+.tabbar-underline {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 2px;
+  width: var(--tab-w, 0px);
+  transform: translateX(var(--tab-x, 0px));
+  background: var(--color-terracotta);
+  border-radius: 9999px;
+  transition: transform var(--mo-base) var(--mo-spring), width var(--mo-base) var(--mo-spring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tabbar-underline { transition: none; }
+}
+
+/* ── Directional pane transitions (M13) ──
+   `data-vt-direction` is set on <html> for the duration of a view transition
+   (utils/viewTransition.ts) and swaps just the `animation-name` half of the
+   existing `vt-fade-in`/`vt-fade-out` shorthand — duration/easing/fill-mode
+   still come from the base rule above. Forward rises slightly; back descends. */
+@keyframes vt-fade-in-back  { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes vt-fade-out-back { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(4px); } }
+html[data-vt-direction="back"]::view-transition-old(root) { animation-name: vt-fade-out-back; }
+html[data-vt-direction="back"]::view-transition-new(root) { animation-name: vt-fade-in-back; }
+
+/* ═══════════════════ Motion pass — Wave 4 (lists and content, M16–M22) ═══════════════════ */
+
+/* ── FLIP reflow (M16) ──
+   A permanent transform transition so `useFlipReflow`'s invert-and-release
+   (measure old position, invert, force a reflow, release) has something to
+   animate against — the same shape as `.toast-row`'s own transition (Wave 2). */
+.mo-flip-item { transition: transform var(--mo-base) var(--mo-ease); }
+@media (prefers-reduced-motion: reduce) {
+  .mo-flip-item { transition: none; }
+}
+
+/* ── Chip pop (M17's filter-count badge, M20's tag/filter chips) ──
+   A small scale overshoot on arrival — the badge replays it via a `key`
+   change (SearchView.tsx), the chips via the class only ever being present
+   once the condition it's gated on becomes true (a freshly-added class always
+   plays its animation from the start). `.mo-chip-pop-out` is the removal
+   counterpart for chips that actually leave the DOM (TagInput.tsx). */
+@keyframes mo-chip-pop {
+  0%   { transform: scale(0.7); }
+  55%  { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes mo-chip-pop-out {
+  to { opacity: 0; transform: scale(0.7); }
+}
+.mo-chip-pop { animation: mo-chip-pop var(--mo-base) var(--mo-spring) both; }
+.mo-chip-pop-out { animation: mo-chip-pop-out var(--mo-fast) var(--mo-ease-in) both; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .mo-chip-pop, .mo-chip-pop-out { animation: none; }
+}
+
+/* ── List ↔ tiles crossfade (M18) ──
+   `Timeline.tsx` ships the plan's own explicitly-sanctioned fallback here — a
+   crossfade with the outgoing layout absolutely positioned — rather than a
+   true FLIP across two structurally different DOM shapes (grid tiles vs.
+   bordered rows), which risks a visibly stretched/distorted transform on a
+   transition this session has no way to verify in a real browser. Reuses the
+   opacity-only `mo-fade-in-plain`/`mo-fade-out-plain` pair (Wave 2) — no new
+   keyframes needed. */
+
+/* ── Sticky header elevation (M22) ──
+   A shadow (+ a slight background tint, where the header doesn't already
+   avoid one on purpose) once an IntersectionObserver sentinel confirms the
+   pane has actually scrolled. `.mo-header-elevated` is shadow-only — safe
+   everywhere, including `Timeline.tsx`'s toolbar, which deliberately carries
+   NO fill (a solid band there previously mismatched the frosted sidebar,
+   worst at night — see the toolbar's own comment). `.mo-header-elevated-tint`
+   adds the background tint too, for `EventCard`/`DayDetail`'s headers, which
+   have no such constraint. */
+.mo-header-elevated {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  transition: box-shadow var(--mo-base) var(--mo-ease-out), background-color var(--mo-base) var(--mo-ease-out);
+}
+.dark .mo-header-elevated { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); }
+.mo-header-elevated-tint { background-color: color-mix(in srgb, var(--color-surface) 94%, transparent); }
+@media (prefers-reduced-motion: reduce) {
+  .mo-header-elevated { transition: none; }
+}
+
+/* ── Empty-state glyph breathes (M21) ──
+   A very slow wander (a couple of degrees of rotation) layered on top of the
+   existing `.animate-floaty` bob — both loop forever and are cheap (a single
+   transform), so running together costs nothing extra. */
+@keyframes mo-glyph-drift {
+  0%, 100% { rotate: -2deg; }
+  50%      { rotate: 2deg; }
+}
+.mo-glyph-drift { animation: mo-glyph-drift 9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mo-glyph-drift { animation: none; }
+}
+
+/* ── Lightbox zoom-from-thumbnail (M19) ──
+   The image needs a transition for the FLIP release (Lightbox.tsx computes
+   the inverted transform in JS, same invert-and-release shape as
+   `useFlipReflow`) — `--mo-slow` so the zoom reads as weight, matching
+   `.map-shell`'s M15 spring. The backdrop fades on the SAME duration, toggled
+   via a plain `opacity-0` utility rather than a second keyframe class, so it
+   finishes exactly when the image reaches its origin instead of vanishing
+   mid-shrink. */
+.lightbox-image { transition: transform var(--mo-slow) var(--mo-spring); }
+.lightbox-backdrop { transition: opacity var(--mo-slow) var(--mo-ease-in); }
+@media (prefers-reduced-motion: reduce) {
+  .lightbox-image, .lightbox-backdrop { transition: none; }
+}
+
+/* ═══════════════════ Motion pass — Wave 5 (numbers, charts, insights, M23–M29) ═══════════════════ */
+
+/* ── Bars grow from the baseline (M24) ──
+   Sparkline (Stats.tsx) and MonthChart (YearReviewView.tsx) previously carried a
+   `transition` on `height` — animating a layout property, and one that only ever
+   fired on a data change, not on mount (nothing to transition FROM on first
+   paint). Replaced with a `scaleY` entrance from a fixed transform-origin, which
+   is compositor-only and — per a one-shot `animation` applied at mount — plays
+   the "grow up from zero" effect exactly once when each bar first appears,
+   staggered left to right via `stagger()`. A later data change (a new entry
+   landing in today's bucket) now updates the bar's real height instantly with no
+   transition, rather than animating the forbidden property — a deliberate,
+   minor trade-off, not an oversight (see Known Issues). */
+@keyframes mo-bar-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.mo-bar-grow { transform-origin: bottom; animation: mo-bar-grow var(--mo-slow) var(--mo-ease) both; }
+@media (prefers-reduced-motion: reduce) {
+  .mo-bar-grow { animation: none; }
+}
+
+/* ── Ranked-list bars sweep (M25) ──
+   `YearReviewView.tsx`'s `RankedList` fill bars had no transition at all, so
+   even switching year snapped every bar to its new length instantly. A `scaleX`
+   entrance from the left edge, staggered the same way as the bar charts above —
+   the list is already capped at 8 items (`.slice(0, 8)`), which is exactly the
+   stagger's own cap, so every visible bar gets a distinct delay. */
+@keyframes mo-bar-grow-x {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.mo-bar-grow-x { transform-origin: left; animation: mo-bar-grow-x var(--mo-slow) var(--mo-ease) both; }
+@media (prefers-reduced-motion: reduce) {
+  .mo-bar-grow-x { animation: none; }
+}
+
+/* ── Calendar diagonal wave fill (M26) ──
+   `CalendarHeatmap.tsx` keys its day-grid on `${year}-${month}`, so the whole
+   grid (and therefore every cell) remounts — and this animation replays — only
+   on first mount and on an actual month change, never on hover or on picking a
+   day (neither touches that key). The per-cell delay is computed in JS from the
+   cell's `(row + col)` position and passed as an inline `animationDelay`, scaled
+   by `--mo-dur` the same way `stagger()` scales its own delay, so Reduced/Off
+   motion collapses the wave toward instant rather than leaving it un-migrated. */
+@keyframes mo-cal-cell-in {
+  from { opacity: 0; transform: scale(0.82); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.mo-cal-cell-in { animation: mo-cal-cell-in var(--mo-base) var(--mo-ease) both; }
+@media (prefers-reduced-motion: reduce) {
+  .mo-cal-cell-in { animation: none; }
+}
+
+/* ── Calendar month navigation slide (M27) ──
+   Reuses M12's directional-pane keyframes (`sidebar-in-fwd`/`sidebar-out-fwd`/
+   `sidebar-in-back`/`sidebar-out-back`, Wave 3) under generic names rather than
+   inventing a second slide pattern — `CalendarHeatmap.tsx`'s month grid is the
+   first non-sidebar consumer. Only the day-grid slides; the header (‹ month › )
+   stays put, per the plan's own scoping. */
+.mo-pane-slide-in-fwd   { animation: sidebar-in-fwd   var(--mo-base) var(--mo-ease)    both; }
+.mo-pane-slide-out-fwd  { animation: sidebar-out-fwd  var(--mo-fast) var(--mo-ease-in) both; pointer-events: none; }
+.mo-pane-slide-in-back  { animation: sidebar-in-back  var(--mo-base) var(--mo-ease)    both; }
+.mo-pane-slide-out-back { animation: sidebar-out-back var(--mo-fast) var(--mo-ease-in) both; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .mo-pane-slide-in-fwd, .mo-pane-slide-out-fwd, .mo-pane-slide-in-back, .mo-pane-slide-out-back { animation: none; }
+}
+
+/* ── Streak flame flare (M29) ──
+   `.animate-flame`'s `flame-flicker` loop (index.css, Foundation-era) plays
+   forever, identically, regardless of the streak's value. On an INCREASE only
+   (tracked in `Stats.tsx` via a plain ref, not `useFrozen` — see Known Issues for
+   why that primitive doesn't fit here), a `flame-flare` class is added
+   alongside `animate-flame` for one brief pulse. Combined via a compound
+   selector (`.animate-flame.flame-flare`) rather than trying to merge two
+   classes' own `animation` shorthands, which isn't how CSS cascade works — this
+   is the one rule that actually plays both `flame-flicker` (still looping) and
+   `flame-flare` (one-shot) together, listed as a single comma-separated
+   `animation` value. `flame-flare` only touches `filter`, never `transform`
+   (which `flame-flicker` already owns), so the two never fight over a property.
+   Matches `flame-flicker`'s own existing convention of a fixed (not `--mo-*`
+   scaled) duration, gated only by `prefers-reduced-motion` — not the in-app
+   Motion setting, exactly like the loop it decorates. */
+@keyframes flame-flare {
+  0%   { filter: brightness(1) drop-shadow(0 0 0 rgba(192, 90, 69, 0)); }
+  35%  { filter: brightness(1.9) drop-shadow(0 0 6px rgba(192, 90, 69, 0.65)); }
+  100% { filter: brightness(1) drop-shadow(0 0 0 rgba(192, 90, 69, 0)); }
+}
+.animate-flame.flame-flare { animation: flame-flicker 2.2s ease-in-out infinite, flame-flare 0.9s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-card-in, .animate-flame, .animate-flame.flame-flare { animation: none; }
+}
+
+/* ═══════════════════ Motion pass — Wave 6 (the map, M30–M37) ═══════════════════
+   Recurring constraint behind almost everything below: MapLibre writes its OWN
+   inline `transform` onto whichever element you hand a Marker/Popup for
+   positioning, overriding any CSS `transform` animation placed on that same
+   element every frame. Every marker's root is therefore a bare wrapper Map.tsx
+   creates purely for MapLibre to own; the actual visible pin is a CHILD,
+   free to animate. `pulse-dot` (pre-existing) already worked around this by
+   animating `box-shadow` instead — a property MapLibre never touches — which is
+   why it could safely live directly on the user-location marker's root. */
+
+/* ── Entry markers — keyed diff drop-in / scale-out (M30) ──
+   `mo-marker-in`'s class is removed on its own `animationend` (Map.tsx): with
+   `fill-mode: both`, a finished keyframe keeps "holding" `transform` forever,
+   which would otherwise permanently block the dot's own `:hover` scale
+   transition from ever running again after its first entrance. */
+@keyframes mo-marker-in {
+  from { opacity: 0; transform: translateY(calc(var(--mo-slide) * -1)) scale(0.4); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes mo-marker-out {
+  to { opacity: 0; transform: scale(0.25); }
+}
+.mo-marker-in  { animation: mo-marker-in  var(--mo-base) var(--mo-spring)  both; }
+.mo-marker-out { animation: mo-marker-out var(--mo-fast)  var(--mo-ease-in) both; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .mo-marker-in, .mo-marker-out { animation: none; }
+}
+
+/* ── GPS sonar ping (M32) ── a CHILD of `.atlas-user-marker`, so it never
+   fights that root's own `pulse-dot` loop (a different property, `box-shadow`,
+   chosen for exactly this reason) or MapLibre's positioning transform. Removed
+   from the DOM on its own `animationend` (Map.tsx) — it plays once per fix. */
+@keyframes mo-sonar-ping {
+  from { transform: scale(0.5); opacity: 0.6; }
+  to   { transform: scale(3.4); opacity: 0; }
+}
+.atlas-sonar-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.5);
+  animation: mo-sonar-ping 1.1s var(--mo-ease-out) both;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-sonar-ping { animation: none; display: none; }
+}
+
+/* ── Dropped pin lands (M34) ── `.atlas-draft-marker-pending` holds the pin
+   invisible until Map.tsx's `moveend` listener confirms the camera's `flyTo`
+   has actually settled, so it lands as the flight arrives rather than before
+   it; `.atlas-draft-marker-land` is the bounce that plays at that moment, plus
+   a one-shot ground ripple appended alongside it. */
+.atlas-draft-marker-pending { opacity: 0; }
+@keyframes mo-pin-land {
+  0%   { opacity: 0; transform: translateY(-14px) scale(0.5) rotate(-45deg); }
+  65%  { opacity: 1; transform: translateY(2px) scale(1.08) rotate(-45deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(-45deg); }
+}
+.atlas-draft-marker-land { animation: mo-pin-land var(--mo-base) var(--mo-spring) both; }
+@keyframes mo-pin-ripple {
+  from { transform: translateX(-50%) scale(0.3); opacity: 0.55; }
+  to   { transform: translateX(-50%) scale(2.6); opacity: 0; }
+}
+.atlas-pin-ripple {
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 16px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(192, 90, 69, 0.5);
+  transform: translateX(-50%);
+  animation: mo-pin-ripple var(--mo-slow) var(--mo-ease-out) both;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-draft-marker-pending { opacity: 1; }
+  .atlas-draft-marker-land { animation: none; }
+  .atlas-pin-ripple { animation: none; display: none; }
+}
+
+/* ── POI pins bob and greet (M35) ── two nested layers inside the marker root
+   (Map.tsx): `.mo-poi-bob-layer` (continuous idle bob, gated behind Graphics
+   quality ≥ Medium — this is scenery, and there can be many pins) wraps
+   `.atlas-poi-marker` itself (the one-shot arrival pulse, class removed on its
+   own `animationend` for the same `fill-mode: both` reason as M30's dot).
+   Two elements because both need `transform`, and one `animation` can't run
+   two independent transforms on the same property at once. The static
+   `transform: translateY(-4px)` `.atlas-poi-marker` already carries (above)
+   is folded into `mo-poi-pulse`'s own end state so the pulse doesn't undo it. */
+@keyframes mo-poi-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.mo-poi-bob-layer {
+  animation: mo-poi-bob var(--poi-bob-dur, 5s) ease-in-out infinite;
+  animation-delay: var(--poi-bob-delay, 0s);
+}
+@keyframes mo-poi-pulse {
+  0%   { transform: translateY(-4px) scale(0.4); opacity: 0; }
+  60%  { transform: translateY(-4px) scale(1.15); opacity: 1; }
+  100% { transform: translateY(-4px) scale(1); opacity: 1; }
+}
+.mo-poi-pulse { animation: mo-poi-pulse var(--mo-base) var(--mo-spring) both; }
+@media (prefers-reduced-motion: reduce) {
+  .mo-poi-bob-layer { animation: none; }
+  .mo-poi-pulse { animation: none; }
+}
+
+/* ── Popups scale from their pin (M36) ── MapLibre's own popup open/close is
+   instant. `.maplibregl-popup-content` (a child MapLibre creates INSIDE the
+   positioned `.maplibregl-popup` root) is what's animated, for the same
+   root-transform reason as everything else in this section. `transform-origin`
+   reads MapLibre's own `maplibregl-popup-anchor-*` class (already computed to
+   avoid the popup running off-screen) rather than guessing a fixed corner. */
+@keyframes mo-popup-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.atlas-poi-popup .maplibregl-popup-content { animation: mo-popup-in var(--mo-fast) var(--mo-spring) both; }
+.atlas-poi-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-content,
+.atlas-poi-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-content,
+.atlas-poi-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-content { transform-origin: bottom center; }
+.atlas-poi-popup.maplibregl-popup-anchor-top .maplibregl-popup-content,
+.atlas-poi-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-content,
+.atlas-poi-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-content { transform-origin: top center; }
+@media (prefers-reduced-motion: reduce) {
+  .atlas-poi-popup .maplibregl-popup-content { animation: none; }
+}
+
+/* ═══════════════════ Motion pass — Wave 7 (feedback and atmosphere, M38–M44) ═══════════════════
+   The sun/moon arc (M43) lives inline with the sun/moon rules above, not here —
+   it's a small addition to `sun-breathe`/`beam-spin`/`.sun-glow`/`.moon-glow`,
+   which already existed. M39 (smooth programmatic scrolling) and M44 (hills
+   drift on scroll — see Known Issues, not built this wave) need no CSS of
+   their own. */
+
+/* ── Command palette — travelling row highlight (M38) ──
+   `.palette-list` is the scrollable results container (`position: relative` so
+   the indicator's offsets are container-relative); `.palette-row-indicator` is
+   an absolutely-positioned highlight sized/moved from `activeRow.offsetTop` /
+   `.offsetHeight` in CommandPalette.tsx — NOT from `getBoundingClientRect()`
+   (what `useSlidingIndicator` uses for M8/M12): those two callers' containers
+   never scroll, so a viewport-relative rect is also container-relative and
+   scroll-stable. This list DOES scroll, and `offsetTop` is the one measurement
+   that stays correct regardless of scroll position, which is why this is its
+   own small measurement rather than a third call site for that hook. */
+.palette-list { position: relative; }
+.palette-row-indicator {
+  position: absolute;
+  left: 0.375rem;
+  right: 0.375rem;
+  top: 0;
+  height: var(--cmdk-h, 0px);
+  transform: translateY(var(--cmdk-y, 0px));
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-terracotta) 12%, transparent);
+  transition: transform var(--mo-fast) var(--mo-ease), height var(--mo-fast) var(--mo-ease);
+  z-index: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .palette-row-indicator { transition: none; }
+}
+
+/* ── Focus rings bloom (M40) ── `.btn`/`.fmt-btn`/`.info-dot` all now carry a
+   transparent outline at rest so `:focus-visible` only ever changes
+   `outline-color`/`outline-offset` — properties a transition CAN animate —
+   rather than the outline appearing from nothing. The offset itself "blooms"
+   outward using `--mo-amp`, the same amplitude multiplier every other new
+   distance in this pass reads, so it collapses to a flush ring (not an
+   animated one) at Reduced/Off, matching how every other entrance in this
+   file already degrades. */
+.btn, .fmt-btn, .info-dot {
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+}
+.btn:focus-visible, .fmt-btn:focus-visible, .info-dot:focus-visible {
+  outline-offset: calc(1px + 2px * var(--mo-amp));
+}
+
+/* ── Sliders give feedback (M41) ── Exactly three `<input type="range">`s in
+   the app (SettingsView.tsx: card opacity, map zoom, POI radius) — plain
+   enough to style directly rather than adding a `<Slider>` primitive nobody
+   else needs. The thumb grows slightly while actively being dragged; released,
+   it settles back via the same spring used for button press/landing. */
+input[type="range"]::-webkit-slider-thumb { transition: transform var(--mo-fast) var(--mo-spring); }
+input[type="range"]::-moz-range-thumb     { transition: transform var(--mo-fast) var(--mo-spring); }
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
+input[type="range"]:active::-moz-range-thumb     { transform: scale(1.25); }
+@media (prefers-reduced-motion: reduce) {
+  input[type="range"]::-webkit-slider-thumb, input[type="range"]::-moz-range-thumb { transition: none; }
+}
+/* The numeric readout next to each slider (e.g. "62%") ticks on every change —
+   keyed on the formatted label text in SettingsView.tsx, so React remounts the
+   span and the entrance keyframe replays, the same "replay via key" idiom
+   `DailyFocus.tsx` already uses for `animate-focus-swap`. */
+@keyframes mo-readout-tick {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+.mo-readout-tick { display: inline-block; animation: mo-readout-tick var(--mo-fast) var(--mo-spring); }
+@media (prefers-reduced-motion: reduce) {
+  .mo-readout-tick { animation: none; }
+}
+
+/* Frosted panels re-tint on every `--card-alpha` change (the same "Card &
+   panel opacity" slider, M41) with no transition at all today, so dragging it
+   re-tints in hard, visible steps. A short transition smooths that out
+   without making the drag itself feel laggy. */
+.welcome-card, .panel-frost, .welcome-card-land {
+  transition: background-color calc(0.12s * var(--mo-dur)) var(--mo-ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-card, .panel-frost, .welcome-card-land { transition: none; }
+}
+
+/* ── The weather announces itself (M42) ── one soft, one-shot wash across the
+   WHOLE scene the moment `scene.mode` changes (clear → rain, etc.), on top of
+   the per-layer `filter 1.4s ease` / `fill 1.4s ease` cross-fades those layers
+   already carry — AmbientBackground.tsx mounts this for ~900ms and unmounts
+   it, rather than leaving it in the DOM permanently, so there's nothing to
+   toggle back off. Graphics quality ≥ Medium only (atmosphere, not core
+   weather — same gate Map.tsx's POI bob uses for M35). */
+@keyframes mo-weather-wash {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.35; }
+  100% { opacity: 0; }
+}
+.weather-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 60%);
+  animation: mo-weather-wash 0.9s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .weather-wash { display: none; }
+}

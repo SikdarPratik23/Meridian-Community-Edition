@@ -1,0 +1,36 @@
+/**
+ * Field-journal writing prompts. One is surfaced at a time (stable within a day,
+ * rotating via `pickFresh`). Shared by the daily-focus card and anywhere else a
+ * prompt is shown, so the pool lives in one place.
+ */
+export const PROMPTS = [
+  'What did the land look like today — its relief, its water, its edges?',
+  'Note one place you passed through and why it stuck with you.',
+  'Describe the weather as a geographer would: sky, wind, temperature, light.',
+  'What changed here since you last looked? Erosion, growth, building, season?',
+  'Map a short walk in words — what you saw at each turn.',
+  'Record a sound or smell of this place before you forget it.',
+  'Where exactly are you, and what is just out of sight?',
+  'What human mark is on this landscape — a path, a wall, a field boundary?',
+  'If this spot had a name only you knew, what would it be?',
+  'Sketch the horizon in a sentence.',
+  'What would a map miss about being here right now?',
+  'Note the ground beneath you: rock, soil, pavement, water.',
+  'Which direction does the land fall away, and where would water run from here?',
+  'What is the oldest thing you can see right now — and the newest?',
+  'Name three things you can hear, and where each one comes from.',
+  'How has the light changed since you arrived? What colour is the sky at its edges?',
+  'What crop, tree or plant grows here, and what does that tell you about the soil and climate?',
+  'Trace the nearest watercourse in your mind — where does it start, where does it end?',
+  'What would this place have looked like 100 years ago? 10,000?',
+  'Which way is north from where you sit, and how do you know without a compass?',
+  'What boundary are you nearest to — a border, a coast, a ridge, a field edge?',
+  'Describe the temperature and the wind as if writing for someone who will never come here.',
+  'What sign of water shaped this landscape — a valley, a terrace, a dry bed?',
+  'If you followed the highest ground from here, where would it lead?',
+  'What is the busiest and the emptiest thing in view?',
+  'Note one detail of this place you have never consciously noticed before.',
+  'What travels through here — people, animals, traffic, weather — and where to?',
+  'How far can you see, and what stops your view?',
+  'What would you warn, or promise, a traveller arriving here for the first time?',
+];
