@@ -43,12 +43,49 @@ export interface Scene {
   ambient: Ambient;
   /** Wind strength 0–1 — sways trees/grass and slants rain/particles. */
   wind: number;
+  /** Wind direction in degrees (0..360; 0=N, 90=E), null if unknown. */
+  windDir: number | null;
   /** Northern lights: clear/overcast night at a high latitude. */
   aurora: boolean;
   /** Fog rolling across the scene (real fog codes, or a lighter snow haze). */
   fog: boolean;
   /** The Moon's current phase (offline computed) — drives the night sky's moon. */
   moon: MoonPhase;
+  /** Which hemisphere's constellations to draw (BACKDROP_BRIEF Phase 4 D1) —
+   *  'N' when `lat` is missing, since a majority-northern install base is the
+   *  safer unknown-location default than a coin flip. */
+  hemisphere: Hemisphere;
+}
+
+export type Hemisphere = 'N' | 'S';
+
+/** BACKDROP_BRIEF Phase 4 D1: which set of constellations (Ursa Major vs Crux)
+ *  belongs on a clear night at this latitude. Exported standalone so it can be
+ *  unit-tested without constructing a whole Scene. */
+export function hemisphereFor(lat: number | null | undefined): Hemisphere {
+  return lat != null && lat < 0 ? 'S' : 'N';
+}
+
+/** BACKDROP_BRIEF Phase 4 B2: the real wind direction (degrees, meteorological —
+ *  the direction the wind blows FROM) turned into the sign the scene's leftward/
+ *  rightward sway and drift use. A wind blowing from the eastern half (0–180°)
+ *  pushes things toward the west, i.e. leftward on screen — hence -1 there.
+ *  `null` (no reading yet) defaults to the scene's original always-rightward
+ *  behaviour. Shared by AmbientBackground's tree/grass/smoke sway AND
+ *  ParticleField's rain/snow slant — was duplicated inline in both before this
+ *  extraction, which is also why it had never been unit-tested. */
+export function windSignFor(dir: number | null | undefined): 1 | -1 {
+  return dir != null && dir > 0 && dir < 180 ? -1 : 1;
+}
+
+/** BACKDROP_BRIEF Phase 4 A1: how many stones the trail cairn has earned for a
+ *  given entry count. Bucketed on log2 rather than linear so each new stone is a
+ *  genuinely rare, celebratory event (1/3/7/15/31/63/127 entries) instead of a
+ *  constant trickle, and capped at 7 because that's how many stone shapes the
+ *  component draws. Exported standalone so the milestone thresholds are
+ *  unit-tested without mounting HillsideScene or seeding a real journal. */
+export function cairnBucketFor(eventCount: number): number {
+  return Math.min(7, Math.floor(Math.log2(Math.max(0, eventCount) + 1)));
 }
 
 /** Turn a real wind speed (km/h) into the 0–1 strength the scene animates on. */
@@ -63,11 +100,12 @@ export interface SceneInput {
   date: Date;
   weatherCode: number | null;
   windKph: number | null;
+  windDir?: number | null;
   lat: number | null;
   phase: SkyPhase;
 }
 
-export function buildScene({ date, weatherCode, windKph, lat, phase }: SceneInput): Scene {
+export function buildScene({ date, weatherCode, windKph, windDir, lat, phase }: SceneInput): Scene {
   const season = seasonFor(date, lat).key;
   const mode = modeForWeather(weatherCode);
   const night = phase === 'night';
@@ -99,6 +137,10 @@ export function buildScene({ date, weatherCode, windKph, lat, phase }: SceneInpu
   const aurora = clearish && night && highLat;
   const fog = weatherCode === 45 || weatherCode === 48;
   const moon = moonPhase(date);
+  const hemisphere = hemisphereFor(lat);
 
-  return { season, mode, phase, night, storm, precip, ambient, wind, aurora, fog, moon };
+  return {
+    season, mode, phase, night, storm, precip, ambient, wind,
+    windDir: windDir ?? null, aurora, fog, moon, hemisphere,
+  };
 }

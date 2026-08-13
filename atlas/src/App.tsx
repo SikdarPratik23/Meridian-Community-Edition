@@ -13,6 +13,8 @@ import { useGlobalRipple } from './hooks/useRipple';
 import { useWeatherBg } from './hooks/useWeatherBg';
 import { useSwipeBack } from './hooks/useSwipeBack';
 import { useNearbyPois } from './features/welcome/useNearbyPois';
+import { useHoldToPeek } from './hooks/useHoldToPeek';
+import { useSceneParallax } from './hooks/useSceneParallax';
 import Sidebar from './components/sidebar/Sidebar';
 import BottomTabBar from './components/BottomTabBar';
 import CaptureFab from './components/ui/CaptureFab';
@@ -21,6 +23,9 @@ import AmbientBackground from './components/AmbientBackground';
 import ToastHost from './components/ui/ToastHost';
 import Presence from './components/ui/Presence';
 import Disclosure from './components/ui/Disclosure';
+import { useT } from './i18n';
+import CompassIcon from './components/ui/CompassIcon';
+import SearchFab from './components/ui/SearchFab';
 
 // Lazy: the introduction is shown once per install and never again, so its code
 // has no business in the main bundle every other launch pays for.
@@ -43,6 +48,8 @@ const DISSOLVE_MS = 250;
 
 export default function App() {
   useSwipeBack();
+  useHoldToPeek();
+  useSceneParallax();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bootProgress, setBootProgress] = useState(0);
@@ -55,25 +62,25 @@ export default function App() {
   const sidebarOpen = useAtlasStore((s) => s.sidebarOpen);
   const toggleSidebar = useAtlasStore((s) => s.toggleSidebar);
   const composing = useAtlasStore((s) => s.composing);
-  const activeTab = useAtlasStore((s) => s.activeTab);
   const editing = useAtlasStore((s) => s.editing);
   const selectedEvent = useAtlasStore((s) => s.selectedEvent);
   const selectedDay = useAtlasStore((s) => s.selectedDay);
   const selectedTrip = useAtlasStore((s) => s.selectedTrip);
   const yearReviewOpen = useAtlasStore((s) => s.yearReviewOpen);
   const mapExpanded = useAtlasStore((s) => s.mapExpanded);
-  const setMapExpanded = useAtlasStore((s) => s.setMapExpanded);
   const needsReconnect = useFileLink((s) => s.needsReconnect);
   const linkedFileName = useFileLink((s) => s.fileName);
   const theme = useSettings((s) => s.theme);
   const cardOpacity = useSettings((s) => s.cardOpacity);
   const fontSize = useSettings((s) => s.fontSize);
+  const graphicsQuality = useSettings((s) => s.graphicsQuality);
   const motionSetting = useSettings((s) => s.motion);
   const prefersReducedMotion = useReducedMotion();
   const onboarded = useSettings((s) => s.onboarded);
   const paletteOpen = useAtlasStore((s) => s.paletteOpen);
   const setPaletteOpen = useAtlasStore((s) => s.setPaletteOpen);
   const wxClass = useWeatherBg();
+  const t = useT();
 
   // Keep the nearby places-of-interest published to the store from the app root,
   // so the map's pins never depend on the welcome POI card being on screen.
@@ -120,6 +127,12 @@ export default function App() {
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
   }, [theme]);
+
+  // Publish graphics quality tier to <html> so CSS rules (e.g. .tabbar backdrop-filter)
+  // can gate on data-gfx="low".
+  useEffect(() => {
+    document.documentElement.dataset.gfx = graphicsQuality;
+  }, [graphicsQuality]);
 
   // The Motion setting folded with the live OS preference — every animation in
   // the app reads this off <html> via the --mo-* tokens (index.css), so this is
@@ -283,6 +296,7 @@ export default function App() {
       window.removeEventListener('online', ensureSync);
       document.removeEventListener('visibilitychange', onVisible);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (error) {
@@ -315,13 +329,6 @@ export default function App() {
   );
 
   // Both phone FABs float above the bottom-right/bottom-left of whatever the
-  // active tab is showing — which is fine over a scrolling list, and wrong over
-  // Settings and Data, whose own trailing controls ("Save settings", the export
-  // buttons) live in exactly that strip and were sitting UNDER them. Neither
-  // "write an entry" nor "open the map" belongs on those two tabs anyway, so
-  // they simply don't appear there. (Reported 2026-08-08.)
-  const fabTabsAllowed = activeTab !== 'settings' && activeTab !== 'data';
-
   return (
     <>
       {ready && (
@@ -438,25 +445,31 @@ export default function App() {
         <MainPane />
       </div>
 
-      {/* Mobile-only "open the map" FAB — moved here from MainPane.tsx (P1):
-          MainPane is CSS-hidden on a phone whenever the active tab's list is
-          showing, so a trigger button living inside it would be exactly as
-          unreachable as the map it opens. Visible in precisely that situation
-          (`!mobileDetailOpen`); once tapped, `mapExpanded` flips MainPane back
-          into view (see `mobileDetailOpen` above) showing the full-screen map. */}
+      {/* Mobile-only Search & Sync merged FAB (perfectly balancing CaptureFab on the left) */}
+      <SearchFab
+        onOpenPalette={() => setPaletteOpen(true)}
+      />
+
+      {/* Desktop Search floating button — dedicated button anchored at the bottom-right
+          where the user requested, leaving the top header and sky spacious. */}
       <Presence
-        when={!mobileDetailOpen && fabTabsAllowed}
+        when={!mapExpanded}
         exitMs={160}
         enterClassName="mo-rise-in"
         exitClassName="mo-fade-out"
-        className="md:hidden absolute right-4 bottom-[calc(var(--tabbar-clear)+1rem)] z-30"
+        className="hidden md:block absolute right-6 bottom-6 z-30"
       >
         <button
-          onClick={() => setMapExpanded(true)}
-          aria-label="Open the map"
-          className="flex items-center gap-1.5 rounded-full border border-water bg-surface px-4 py-2.5 text-sm shadow-md hover:bg-land"
+          onClick={() => setPaletteOpen(true)}
+          aria-label="Open search / command palette"
+          title="Jump to anything (Ctrl/⌘ K)"
+          className="flex items-center gap-2.5 rounded-full border border-water bg-surface/90 px-4 py-2.5 text-sm font-medium text-ink shadow-lg backdrop-blur-md hover:bg-land hover:shadow-xl active:scale-95 transition-all select-none group"
         >
-          🗺️ Map
+          <CompassIcon size={18} className="group-hover:scale-110 transition-transform" />
+          <span>{t('nav.search')}</span>
+          <kbd className="ml-1 rounded border border-water/80 bg-land px-1.5 py-0.5 text-[10px] font-sans font-semibold text-ink/50 shadow-2xs">
+            Ctrl K
+          </kbd>
         </button>
       </Presence>
 

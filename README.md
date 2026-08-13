@@ -4,7 +4,7 @@ Meridian Community Edition is built for people who want a private, lasting, and 
 
 License notice: Meridian Community Edition is free to use, modify, and share for non-commercial purposes only. It must not be sold, and it must not be included in paid products or services.
 
-A local-first, offline-capable **field journal for geographers**. You write Markdown entries, optionally pin them where you are, and attach photos (audio is coming). It's a **journal app first** — the map is a small supporting view, not the centre of attention. Built with React 19, TypeScript, Vite, MapLibre GL, and SQLite (running in your browser via WebAssembly). Your data lives **only** in your browser until you choose to export it, and a local sync server can keep a PC and phone in step over your home WiFi (or from anywhere via Tailscale). It reads and writes Bengali (বাংলা) and other scripts, exports to GeoJSON/GPX for GIS tools, and offers field-journal templates.
+A local-first, offline-capable **field journal for geographers**. You write Markdown entries, optionally pin them where you are, and attach photos and voice notes. It's a **journal app first** — the map is a small supporting view, not the centre of attention. Built with React 19, TypeScript, Vite, MapLibre GL, and SQLite (running in your browser via WebAssembly). Your data lives **only** in your browser until you choose to export it, and a local sync server can keep a PC and phone in step over your home WiFi (or from anywhere via Tailscale). It reads and writes Bengali (বাংলা) and other scripts, exports to GeoJSON/GPX for GIS tools, offers field-journal templates, and gives your home screen a living seasonal landscape (weather, day/night, and seasons animate behind your journal, all optional and fully offline).
 
 Everything is a single kind of thing: a **journal entry**. Each entry is your Markdown writing, and can optionally carry a **place** (a location + place name), a **date you choose** (so you can write for a past day), and media. "Place" isn't a separate item type — it's just the location attached to an entry. (A legacy `place` type still exists in the database for backward compatibility, but new entries are all journal entries.)
 
@@ -68,19 +68,9 @@ Pick **one** of these two setups — they can't be mixed, because a browser will
 
 > **Set-once tip:** if you want the fallback to happen automatically, open the app over **http** (the LAN URL), set **Primary** = your Tailscale HTTPS URL and **Same-WiFi address (fallback)** = your LAN `http://192.168.x.x:8787`. Meridian tries the primary first and drops to the same-WiFi address on its own when Tailscale isn't reachable — so you never edit it again moving between home and away.
 
-### Pair your phone by QR (the quick way)
-
-Instead of typing the addresses on the phone, you can scan them in one go:
-
-1. On the **PC**, open **Data → Sync**, fill in the **Primary address** (and optionally the same-WiFi fallback + token) as above, then click **📱 Pair a phone**.
-2. A **QR code** appears. Above it, the **"App address the phone opens"** is the URL the phone will launch — leave it as your HTTPS app URL for the recommended https setup, or change it to the LAN app address for the same-WiFi-only setup.
-3. On the **phone**, point the **camera** at the QR and open the link. Meridian launches, fills in the sync address, role (**Phone**) and token for you, and starts syncing. A green **"📱 Paired…"** bar confirms it.
-
-The QR just encodes a link back to the app with the addresses as parameters — nothing secret beyond what you'd type by hand, and it's only ever scanned by your own phone. **Manual entry always stays available** (steps 1–2 above); the QR is only a shortcut, and you can re-pair the same way any time your WiFi/IP changes.
-
 ### 4 · On the PC side
 
-In the PC's browser (`http://localhost:5173`) → **Data → Sync**, role **PC**, address `http://localhost:8787`, **Connect**. Auto-sync is on by default; the **Sync** button at the top of the sidebar forces a one-off sync any time. If nothing seems to move, check that *both* devices show a reachable address and **"Last synced …"** — a device pointed at an unreachable address (e.g. the Tailscale URL while Tailscale is off) can neither send nor receive.
+In the PC's browser (`http://localhost:5173`) → **Data → Sync**, role **PC**, address `http://localhost:8787`, **Connect**. Auto-sync is on by default; the **Sync** button in the app forces a one-off sync any time (on a phone, the small 🔄 Sync pill above the bottom tab bar; on desktop, the Sync button in the sidebar). If nothing seems to move, check that *both* devices show a reachable address and **"Last synced …"** — a device pointed at an unreachable address (e.g. the Tailscale URL while Tailscale is off) can neither send nor receive.
 
 ### Moving the data folder
 
@@ -96,7 +86,7 @@ Then just **double-click `Start Meridian.bat`** (there's one in this `atlas` fol
 
 What it does automatically:
 
-1. Checks that Node.js is available.
+1. Checks that Node.js (and npm) is available.
 2. Installs dependencies the first time (this takes a few minutes — only happens once).
 3. Starts the app and opens it in your browser at `http://localhost:5173`.
 
@@ -113,21 +103,25 @@ Double-click **`Preview Production Build.bat`**. This builds the optimized bundl
 ## Using Meridian
 
 - **Allow location access** when the browser asks — Meridian uses your GPS so new entries are pinned where you are. (You can still write entries if you decline; they just won't be auto-located, and they simply won't show a map pin.)
-- Use the **+ New entry** button in the left sidebar to start writing. Entries are written and read full-size in the main area.
+- Use the **+ New entry** button in the left sidebar (on a phone: the round **✍️ Write** button at the bottom-left) to start writing. Entries are written and read full-size in the main area.
+- **Browse with the navigation bar:** on a PC it's the tabs in the sidebar (**Timeline, Explore, Data** plus the ⚙️ Settings gear); on a phone it's the **bottom tab bar** (**Home, Timeline, Explore, Data, Settings**). Home is the phone's dashboard greeting; **Explore** lets you browse the journal by trip or query it with search filters. The 🧭 **Search** button opens the **command palette** — press **Ctrl+K** (desktop) to jump to anything: an entry, a day, a trip, an action, a setting. On a phone it's the small 🧭 **Search** pill at the bottom-right.
 - **Entries are titled by their date automatically** — there's no title to fill in. If you want to give a particular entry a custom name, use the optional **Name this entry** field further down the editor; leave it blank and the entry stays titled by its date (and re-titles itself if you change the date).
 - Set the **🗓️ Date & time** field to journal for any day — it defaults to now, but you can pick a past date (the "Now" button resets it). Entries sort on the timeline by that date.
 - **🖼️ Add image here** drops a photo (or several) **inline, right where your cursor is** in the text — so a picture can sit between paragraphs, exactly where you want it. Each image gets an optional **caption**, and clicking any image when reading expands it full-screen.
-- **🎤 Dictate** (mic button, bottom-right of the writing box) turns speech into text at the cursor, hands-free. Availability depends on the browser (best in Chrome/Edge); it simply doesn't appear where unsupported. The language it listens for is set in **Settings → Dictation** (defaults to your device language; includes **বাংলা** / Bengali for India and Bangladesh, plus English, Hindi and German).
+- **🎙️ Voice note** (the 🎤 record button in the editor) records up to 3 minutes of audio and attaches it to the entry in place, like a photo. It works wherever the browser supports recording (needs a secure context — so on a plain `http://` LAN address the button is hidden); playback is built in.
+- **🎤 Dictate** (the microphone button near the writing box) turns speech into text at the cursor, hands-free. Availability depends on the browser (best in Chrome/Edge); it simply doesn't appear where unsupported. The language it listens for is set in **Settings → Dictation** (defaults to your device language; includes **বাংলা** / Bengali for India and Bangladesh, plus English, Hindi and German).
 - **🗒️ Insert template** (dropdown above the writing hints) drops a ready-made field-journal outline at your cursor — **Field observation, Species sighting, Geology note, Weather log,** or **Travel day** — then you just fill in the blanks.
 - **Write in any language, including Bengali (বাংলা).** Meridian bundles proper Bengali fonts (offline, no internet needed), so Bengali text reads cleanly in both the editor and the finished entry.
-- **🗺️ Set location on map** lets you place the entry by clicking the map (it expands so you can aim); or press **Use current** to take your GPS position, and **Clear** to leave it unlocated.
+- **🗺️ Set location on map** lets you place the entry by clicking the map (it expands so you can aim); or press **Use current** to take your GPS position, and **Clear** to leave it unlocated. Add a photo with GPS info saved in it and Meridian can drop the pin where the photo was taken (undoable, off by default in Settings).
 - Name the spot in the **Place name** field — that's how a "place" is captured (folded into the entry, not a separate item). When you set a location, Meridian **auto-fills this name** for you (e.g. "Erlangen") if online lookups are on; just type to override it.
 - You **don't have to write Markdown by hand** — plain text works, and any Markdown you do use (headings, **bold**, lists) is rendered automatically when you read the entry.
-- The **map is a small card in the top-right** — click an entry and the map flies to it; press **⤢ Expand** to enlarge the map, **✕ Minimize map** to shrink it again.
-- Browse with the left-sidebar tabs: **Timeline** (entries by month, with a **List / Tiles** toggle), **Search**, **Data**, and **Settings**.
-- **Settings** holds your details (name, title, home region) and a few preferences: **coordinate format** (decimal degrees or D°M′S″), temperature unit, **dictation language** (for the 🎤 mic — including Bengali), the **map's default zoom** (how tightly the map zooms in when you select an entry, drop a pin, or locate yourself — City → Street → Building), whether to **look up place names online** (turn off to stay fully offline), auto-fill on pin drop, and the welcome screen's seasonal animation / daily prompt. Everything is stored only in this browser and isn't part of journal exports.
-- The **welcome screen** greets you by name, shows today's date and **local season**, names where you are (with a short Wikipedia blurb + photo when online lookups are on), surfaces **"On this day"** past entries, a daily writing prompt, and a **geographer's almanac** — a fresh geography fact each reload (some computed from your own coordinates, e.g. your antipode or distance from the equator). On wider screens these cards lay out side-by-side; on a phone they stack.
+- The **map is a small card in the top-right** — click an entry and the map flies to it; press **⤢ Expand** to enlarge the map, **✕ Minimize map** to shrink it again (on a phone, use the **🗺️ Map** button to open it full-screen).
+- **Settings** holds your details (name, title, home region) and a few preferences: **coordinate format** (decimal degrees or D°M′S″), temperature unit, **dictation language** (for the 🎤 mic — including Bengali), the **map's default zoom** and **basemap style**, whether to **look up place names online** (turn off to stay fully offline), auto-fill on pin drop, the theme, text size, and — under **Advanced → Backdrop & performance** — how rich the living landscape is, how much the interface animates, and the welcome screen's seasonal animation / daily prompt. Everything is stored only in this browser and isn't part of journal exports.
+- The **living landscape backdrop** sits behind everything: layered hills, a village, weather (rain, snow, clouds, clear skies), day/night with a sun/moon that move across the sky, and a changing season. It's fully offline, respects your "reduce motion" setting, and can be toned down or switched off in Settings.
+- The **welcome screen / Home** greets you by name, shows today's date and **local season**, names where you are (with a short Wikipedia blurb + photo when online lookups are on), surfaces **"On this day"** past entries, a daily writing prompt, streaks, a **geographer's almanac** — a fresh geography fact each reload (some computed from your own coordinates, e.g. your antipode or distance from the equator) — and a **Year in Review** retrospective. On wider screens these cards lay out side-by-side; on a phone they stack.
 - Data autosaves to your browser every 10 seconds and on close.
+
+> **Already have entries from the past?** Re-open them on the **Timeline** (it's grouped by month with a **List / Tiles** toggle), chip through the day-by-day **calendar heatmap**, revisit trips in **Explore**, and look at your streak in the **Stats** cards up top.
 
 > **Quick check:** to see exactly what has been recorded, open the **Data** tab. It lists every entry with all of its stored fields, a per-record "view raw record" toggle (the literal JSON that is saved), and a **Copy JSON** button for the whole dataset. Expand **"Where & how is this stored?"** at the top of that tab for a short version of the section below.
 
@@ -143,7 +137,7 @@ A natural assumption is that entries are saved as files on disk. **They are not.
 
 > Media you place in `public/data/` (see that folder's README) is the one exception — those are files *you* drop in to reference from entries by URL. They are not where your entries are stored.
 
-**JSON export/import works today** (Data tab → **Export all** / **Import file**) — this is the manual backup path and also a way to move entries between devices when you do not use the local sync server (see the quick-start section above). **GeoJSON and GPX export also work now** (Data tab → **🗺️ Export for maps & GIS**): a `.geojson` (for QGIS/ArcGIS, EPSG:4326, `[lon, lat]`) and a `.gpx` (for Google Earth / handheld GPS), generated on demand from located entries. A **Markdown bundle** export is still on the roadmap.
+**JSON export/import works today** (Data tab → **Export all** / **Import file**) — this is the manual backup path and also a way to move entries between devices when you do not use the local sync server (see the quick-start section above). **GeoJSON and GPX export also work** (Data tab → **🗺️ Export for maps & GIS**): a `.geojson` (for QGIS/ArcGIS, EPSG:4326, `[lon, lat]`) and a `.gpx` (for Google Earth / handheld GPS), generated on demand from located entries. **So do a Markdown bundle** (one `.md` file per entry, with attachments, in a ZIP) **and a printable PDF**.
 
 ## Where it is stored
 
@@ -210,7 +204,7 @@ Everything is **one table, `events`** — every journal entry and place is a row
 | `mood` | TEXT | journal | e.g. "thoughtful". |
 | `weather_condition` | TEXT | journal | e.g. "clear". |
 | `weather_temperature` | REAL | journal | °C. |
-| `media_attachments` | TEXT (JSON array) | journal, place | Media attached to the entry. Each item: `{ id, kind: 'image'\|'audio', mime, name, data }` where `data` is a data URL. **Images are live** (attached via 🖼️ Add image); audio capture is still pending (see Roadmap). |
+| `media_attachments` | TEXT (JSON array) | journal, place | Media attached to the entry. Each item: `{ id, kind: 'image'\|'audio', mime, name, data }` where `data` is a data URL. **Images and voice notes are both live** (attached via 🖼️ Add image and 🎙️ Voice note in the editor). Full-resolution photo originals are kept only on the PC and fetched on demand, so phones stay light. |
 | `visited` | INTEGER (0/1) | place | Whether you've been there. |
 | `rating` | INTEGER | place | 1–5 stars. |
 
@@ -252,28 +246,28 @@ These are wanted features, documented here so the data model and intent are clea
 
 ### 🎙️ Dictation (speech-to-text) — ✅ done
 
-- **What it does:** a 🎤 button in the Journal editor (bottom-right of the writing box). Tap it, speak, and the transcript is inserted as **plain text at the cursor** in `content_markdown` — no new column; a dictated entry is just an ordinary journal entry whose body happened to be spoken. Tap again to stop.
+- **What it does:** a 🎤 button in the Journal editor. Tap it, speak, and the transcript is inserted as **plain text at the cursor** in `content_markdown` — no new column; a dictated entry is just an ordinary journal entry whose body happened to be spoken. Tap again to stop.
 - **How:** the browser's built-in **Web Speech API** (`SpeechRecognition` / `webkitSpeechRecognition`), no upload. Availability varies by browser (best in Chrome/Edge); where unsupported the button is hidden and you simply type.
-- **Possible next step:** optionally also save an audio recording of the dictation as a media attachment (see below).
 
-### 🖼️🎧 Media attachments (images & audio; **video deferred**)
+### 🖼️🎧 Media attachments (images, voice notes & dictation; **video deferred**)
 
 - **Images: ✅ done.** Attach photos from the editor (**🖼️ Add image**); they're stored in `media_attachments` as data URLs and shown as a gallery in the reader.
-- **Audio: pending.** Playback already works if an audio attachment exists, but there's **no record/upload button yet** — that's the next media task (a 🎤 control in the editor, same `MediaAttachment` shape with `kind: 'audio'`).
+- **Voice notes: ✅ done.** Record up to 3 minutes from the editor (**🎙️ Voice note**); the audio travels inline with the entry (`kind: 'audio'`), so it plays back anywhere, offline. Recording needs a secure context, so the button hides on plain-`http` LAN addresses — a browser rule with no workaround.
 - **Video is intentionally out of scope for now** — large files would bloat browser storage; revisit later, likely only once a real backend exists.
-- **Storage note:** images are embedded as base64 data URLs inside the browser database, so very large photos add up. Fine for journaling; a future backend would move big binaries out.
-- **Formats are open-ended.** The image picker uses `accept="image/*"` (audio will use `audio/*`), so the browser takes common types (JPEG, PNG, WebP, GIF, SVG; MP3, WAV, OGG, M4A, WebM) rather than a fixed list. The file's MIME type is stored so previews/playback adapt.
+- **Storage note:** images are embedded as base64 data URLs inside the browser database, so very large photos add up. Photo **originals** live only on the PC (fetched on demand), while a downscaled copy syncs; voice notes are a single modest-bitrate copy everywhere. Fine for journaling; a future backend would move big binaries out.
+- **Formats are open-ended.** The image picker uses `accept="image/*"` and audio uses `audio/*`, so the browser takes common types (JPEG, PNG, WebP, GIF, SVG; MP3, WAV, OGG, M4A, WebM) rather than a fixed list. The file's MIME type is stored so previews/playback adapt.
 - **How it's stored:** each attachment is a descriptor in the `media_attachments` JSON array — `{ id, kind, mime, name, data }` — saved **inside the SQLite/IndexedDB database** (not as a loose file). `data` is currently a base64 data URL; a future option for very large files is a separate blob store referenced by `id`.
-- **Storage caution:** browser storage is finite, so large media adds up — this is why video is deferred. When export lands, attachments will be bundled so nothing is trapped in the browser.
+- **Storage caution:** browser storage is finite, so large media adds up — this is why video is deferred. Use **Export all** from the Data tab so nothing is ever trapped in the browser.
 
 ### ✍️ Markdown "cues" / embeds
 
 - **Inline image embeds: ✅ done.** Images are placed inline in the body where you add them, via an `![caption](attachment:<id>)` tag that resolves to the bytes stored in `media_attachments`. The text stays small and readable (only a short id, not the base64), captions are the Markdown alt text, and clicking an image opens a full-screen lightbox. Multiple images can sit under any section of text.
+- **Sound embeds: ✅ done.** Voice notes use the same attachment scheme with a small player in the reader.
 - **Still planned:** a **location link** cue that flies the map to where a photo was taken when clicked, and fenced **code/script** blocks. Both build on the Markdown rendering already in place.
 
 ### Other planned items
 
-- **Export:** JSON is **done** (Data tab; also used for PC↔phone transfer). **GeoJSON** (EPSG:4326, `[lon, lat]`, for QGIS/ArcGIS) and **GPX** (Google Earth / GPS) are **done** too (Data tab → 🗺️ Export for maps & GIS). Still planned: a Markdown bundle.
+- **Export:** JSON is **done** (Data tab; also used for PC↔phone transfer). **GeoJSON** (EPSG:4326, `[lon, lat]`, for QGIS/ArcGIS), **GPX** (Google Earth / GPS), a **Markdown bundle**, and **PDF** are all **done** too (Data tab → 🗺️ Export for maps & GIS and the export menu).
 - **Reverse geocoding** to auto-fill `location_name` on pin drop. (The **welcome screen already** turns your current coordinates into a place name and a short Wikipedia blurb + photo — read-only lookups to public services that fail soft to coordinates when offline; auto-filling an *entry's* `location_name` is the remaining piece.)
 - **FastAPI + PostGIS backend** for multi-device sync — deferred by design (front-end first).
 - **Multiple independent users on the same WiFi** — not supported yet. The smallest change would be to give each user their own sync namespace so the PC server keeps one shared journal file per user instead of one file for everyone. The least invasive version would be:
@@ -296,19 +290,21 @@ npm run dev      # start dev server with hot reload  (http://localhost:5173)
 npm run build    # type-check + production build into /dist
 npm run preview  # serve the built /dist locally
 npm run lint     # eslint
+npm test         # sync suite (node --test) + unit suite (vitest)
 ```
 
 ### Project structure
 
 ```
 src/
-  components/   MainPane (journal-first layout), map (MapLibre), sidebar UI
-  features/     journal, places, timeline, data (domain modules)
+  components/   MainPane (journal-first layout), map (MapLibre), sidebar & tab bar
+  features/     journal, timeline, explore/search, data, welcome (domain modules)
   data/db.ts    SQLite (sql.js / WASM) + IndexedDB persistence  ← storage lives here
   store/        Zustand global state
-  hooks/        useGeolocation
+  hooks/        useGeolocation, motion & effect hooks
   types/        shared TypeScript interfaces  ← the record schema
-  utils/        id, date, and coordinate helpers
+  i18n/         English + Bengali UI translation catalogues
+  utils/        id, date, coordinate, image, ZIP, EXIF helpers
 ```
 
 ### Code map
@@ -336,8 +332,8 @@ After deploying over HTTPS, the PWA becomes installable ("Add to Home Screen" on
 
 ## Notes & current limitations
 
-- **All data is local to the browser.** Clearing site data / browser storage erases entries. Use **Data → Export all / Import file** (JSON) to back up and to move entries manually between devices; use the local sync server started by `Start Meridian.bat` to keep a PC and phone in step over WiFi. **Copy JSON** is a quick clipboard copy. **GeoJSON / GPX export** work today (Data tab → 🗺️ Export for maps & GIS); a Markdown bundle is still on the roadmap.
-- **Inline images and dictation work today.** Images embed inline in your text (with captions and click-to-expand), and the 🎤 mic dictates speech into the entry. Audio *capture* and the remaining Markdown cues (location links, code blocks) are still on the roadmap; the `media_attachments` field already holds images and will hold audio.
+- **All data is local to the browser.** Clearing site data / browser storage erases entries. Use **Data → Export all / Import file** (JSON) to back up and to move entries manually between devices; use the local sync server started by `Start Meridian.bat` to keep a PC and phone in step over WiFi. **Copy JSON** is a quick clipboard copy. **GeoJSON / GPX / Markdown bundle / PDF** export all work (Data tab).
+- **Inline images, voice notes and dictation work today.** Images and audio embed inline in your text (photos with captions and click-to-expand; voice notes with playback), and the 🎤 mic dictates speech into the entry. The remaining Markdown cues (location links, code blocks) are still on the roadmap.
 - Earlier versions had **expense** and **book** entry types; these have been removed to keep Meridian a focused journal app. A few now-unused columns remain in the database table but are ignored.
 - A **FastAPI + PostGIS backend** for sync is planned but intentionally not built yet (front-end first, per the project brief).
-- Map tiles come from OpenStreetMap; offline tile availability depends on what you've already viewed (cached by the service worker).
+- Map tiles come from OpenStreetMap; offline tile availability depends on what you've already viewed (cached by the service worker) or explicitly downloaded (Data tab → Offline tiles).

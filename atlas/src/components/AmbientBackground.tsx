@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAtlasStore } from '../store/atlas';
 import { useSettings } from '../store/settings';
 import { skyPhase, solarPositionDeg } from '../features/welcome/sky';
-import { buildScene } from '../features/welcome/scene';
+import { buildScene, windSignFor } from '../features/welcome/scene';
 import { modeForWeather } from '../features/welcome/ambiance';
 import { profileFor, QUALITY_ORDER } from '../features/welcome/quality';
 import HillsideScene from './HillsideScene';
@@ -40,6 +40,7 @@ export default function AmbientBackground() {
   const graphicsQuality = useSettings((s) => s.graphicsQuality);
   const weatherCode = useAtlasStore((s) => s.weatherCode);
   const windKph = useAtlasStore((s) => s.windKph);
+  const windDir = useAtlasStore((s) => s.windDir);
   const coords = useAtlasStore((s) => s.coords);
   const setDayPhase = useAtlasStore((s) => s.setDayPhase);
 
@@ -84,7 +85,6 @@ export default function AmbientBackground() {
     if (flashTimer.current) clearTimeout(flashTimer.current);
     flashTimer.current = setTimeout(() => setWeatherFlash(false), 900);
   }, [rawMode, graphicsQuality]);
-  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
 
   if (!seasonalAnim) return null;
 
@@ -97,32 +97,42 @@ export default function AmbientBackground() {
     date: now,
     weatherCode,
     windKph,
+    windDir,
     lat: coords?.lat ?? null,
     phase,
   });
 
-  // Translate the live wind into sway amplitude/speed for the CSS animations.
-  const swayDeg = (3 + scene.wind * 11).toFixed(1);
+  // Translate the live wind into sway amplitude/speed and horizontal drift px.
+  const windSign = windSignFor(scene.windDir);
+  const swayDeg = (3 + scene.wind * 11 * windSign).toFixed(1);
   const swayDur = Math.max(1.4, 4.4 - scene.wind * 2.9).toFixed(2);
-  const showFog = profile.fog && (scene.fog || scene.mode === 'snow');
-
-  // M43: the sun/moon's position along a small decorative arc — altitude
-  // drives how high it sits, azimuth how far toward sunrise/sunset it's
-  // leaning. Needs a real location fix (azimuth is meaningless without a
-  // longitude); with none yet, the celestial body simply stays at its
-  // original fixed spot, same as before this wave.
+  const windX = (scene.wind * 26 * windSign).toFixed(0);
   const sunPos = diurnalCycle && coords ? solarPositionDeg(now, coords.lat, coords.lon) : null;
+  const showFog = profile.fog && (scene.fog || scene.mode === 'snow');
 
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-0"
+      className="pointer-events-none fixed inset-0 z-0 select-none"
       aria-hidden="true"
-      style={{ '--sway-deg': `${swayDeg}deg`, '--sway-dur': `${swayDur}s` } as React.CSSProperties}
+      style={{ '--sway-deg': `${swayDeg}deg`, '--sway-dur': `${swayDur}s`, '--wind-x': `${windX}px` } as React.CSSProperties}
     >
-      {/* Back-to-front: the terrain, then the time-of-day wash that darkens it,
-          then fog haze, then the celestial bodies (which must sit IN FRONT of the
-          night wash or they'd be washed out), and finally the falling/drifting
-          particles on top of the whole scene. */}
+      {/* Back-to-front: terrain, then the night/fog wash, then the sky/celestial
+          layer (moon/stars/constellations), then particles — SeasonAccent must
+          be LAST of these four so the night wash paints UNDER it, not over it.
+          BACKDROP_BRIEF Phase 4 D3 tried "sun/moon set behind the ridge" by
+          moving SeasonAccent to render FIRST (before HillsideScene) — that put
+          the wash on top of the moon and erased the entire night sky (confirmed
+          live: a night screenshot showed zero stars, zero moon, zero
+          constellations). Fixing that regression forward myself, I then made a
+          DIFFERENT version of the same mistake — moving SeasonAccent to right
+          after HillsideScene but still BEFORE this sky-wash, which again put the
+          wash over the moon (caught live the same way: re-ran the night
+          screenshot after the "fix" and the moon was still gone). This is the
+          exact original order, restored a second time and re-verified —
+          SeasonAccent genuinely goes LAST. The ridge-occlusion effect D3 wanted
+          needs a separate horizon-only layer that renders BELOW the terrain,
+          not a reorder of this stack; per the brief, ship nothing there rather
+          than break night again for it. */}
       <HillsideScene scene={scene} profile={profile} />
       {phase !== 'day' && <div className={`sky-wash sky-${phase}`} />}
       {showFog && <div className={`fog-layer ${scene.mode === 'snow' ? 'fog-light' : ''}`} />}

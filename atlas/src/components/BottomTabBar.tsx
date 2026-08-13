@@ -15,7 +15,7 @@ import { useSlidingIndicator } from '../hooks/useSlidingIndicator';
 const TAB_ICONS: Record<View, string> = {
   home: '🏠',
   timeline: '📖',
-  explore: '🧭',
+  explore: '🌄',
   data: '🗃',
   settings: '⚙',
 };
@@ -45,7 +45,7 @@ export default function BottomTabBar() {
       ref={containerRef}
       role="tablist"
       aria-label={t('nav.tagline')}
-      className="tabbar md:hidden fixed inset-x-0 bottom-0 z-50 flex items-stretch border-t border-water bg-surface pb-[env(safe-area-inset-bottom)]"
+      className="tabbar md:hidden fixed inset-x-0 bottom-0 z-50 flex items-stretch border-t border-water pb-[env(safe-area-inset-bottom)]"
     >
       {rect && activeIndex >= 0 && (
         <span

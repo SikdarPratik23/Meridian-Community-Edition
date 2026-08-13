@@ -120,6 +120,12 @@ export interface Settings {
    *  preference as such — it's the "has this install been set up" flag, kept here
    *  so it persists with everything else. */
   onboarded: boolean;
+  /** Whether the user has seen the hold-to-peek discovery hint toast. */
+  peekHintSeen: boolean;
+  /** Whether the user has seen the tap-the-sky compass-rose discovery hint toast. */
+  compassHintSeen: boolean;
+  /** Last celebrated cairn milestone bucket (0..7). */
+  lastSeenCairnBucket: number;
 }
 
 const KEY = 'meridian_settings';
@@ -162,6 +168,9 @@ const defaults: Settings = {
   paneTransitions: true,
   motion: 'full',
   onboarded: false,
+  peekHintSeen: false,
+  compassHintSeen: false,
+  lastSeenCairnBucket: 0,
 };
 
 function load(): Settings {

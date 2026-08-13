@@ -722,6 +722,16 @@ body {
   background: linear-gradient(to bottom,
     rgba(255, 150, 95, 0.24) 0%, rgba(255, 178, 120, 0.11) 45%, rgba(255, 200, 150, 0) 82%);
 }
+.sky-wash.sky-golden::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0; height: 45%;
+  background: linear-gradient(to top,
+    rgba(240, 140, 60, 0.32) 0%,
+    rgba(240, 140, 60, 0.15) 60%,
+    transparent 100%);
+  pointer-events: none;
+}
 .sky-night {
   background: linear-gradient(to bottom,
     rgba(15, 19, 37, 0.88) 0%, rgba(23, 29, 53, 0.66) 50%, rgba(31, 39, 65, 0.5) 100%);
@@ -1000,7 +1010,14 @@ body {
    without disturbing the frosted, seamless look (no fill change, just a soft
    shadow + 2px rise). */
 .welcome-card, .welcome-card-land {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   transition: transform calc(0.2s * var(--mo-dur)) ease, box-shadow calc(0.2s * var(--mo-dur)) ease, border-color calc(0.2s * var(--mo-dur)) ease;
+}
+.welcome-card input, .welcome-card textarea, .welcome-card-land input, .welcome-card-land textarea {
+  user-select: text;
+  -webkit-user-select: text;
 }
 .welcome-card:hover, .welcome-card-land:hover {
   transform: translateY(-2px);
@@ -1020,7 +1037,7 @@ body {
    Motion amplitude/speed comes from --sway-deg / --sway-dur, which the parent
    sets from the real wind. */
 .hillside {
-  position: absolute; left: 0; right: 0; bottom: 0;
+  position: absolute; left: 0; right: 0; bottom: var(--tabbar-clear); /* Lift floor so lake/grass/flower band isn't buried behind tab bar on phones */
   height: min(56vh, 440px);
   pointer-events: none; overflow: hidden; z-index: 0;
   transition: filter 1.4s ease;
@@ -1032,6 +1049,7 @@ body {
   --hs-grass-top: #7BC257; --hs-grass-bot: #519241;
   --hs-water: #8CCDE4;    --hs-water-lo: #4E9BC0;
   --hs-bloom-a: #F2A6C2;  --hs-bloom-b: #F6C86B;  --hs-bloom-c: #C79BE0; --hs-bloom-core: #FFF0B0;
+  --hs-haze: rgba(147, 174, 184, 0.35); --hs-trail: #E4D5B7; --hs-village: #649662;
 }
 
 /* ---- Seasonal palettes (cross-fade via each shape's `transition: fill`) ---- */
@@ -1042,6 +1060,7 @@ body {
   --hs-trunk: #7A5540;    --hs-grass-top: #7BC257; --hs-grass-bot: #519241;
   --hs-water: #8CCDE4;    --hs-water-lo: #4E9BC0;
   --hs-bloom-a: #F2A6C2;  --hs-bloom-b: #F6C86B;  --hs-bloom-c: #C79BE0; --hs-bloom-core: #FFF0B0;
+  --hs-haze: rgba(147, 174, 184, 0.35); --hs-trail: #E4D5B7; --hs-village: #649662;
 }
 .hillside.season-summer {
   --hs-far: #9DB6C4;      --hs-mid: #7C9AAE;      --hs-forest: #3F6B47;
@@ -1050,6 +1069,7 @@ body {
   --hs-trunk: #6B4A34;    --hs-grass-top: #5A9A46; --hs-grass-bot: #3C6E33;
   --hs-water: #6FB6D8;    --hs-water-lo: #3E86AE;
   --hs-bloom-a: #E8B04B;  --hs-bloom-b: #E0685A;  --hs-bloom-c: #D98FB0; --hs-bloom-core: #FBE7A6;
+  --hs-haze: rgba(216, 174, 120, 0.35); --hs-trail: #DFCDA6; --hs-village: #477744;
 }
 .hillside.season-autumn {
   --hs-far: #BBB0A6;      --hs-mid: #A9968A;      --hs-forest: #7A5A34;
@@ -1058,6 +1078,7 @@ body {
   --hs-trunk: #5E4028;    --hs-grass-top: #B79A4C; --hs-grass-bot: #8A6B32;
   --hs-water: #7FA8C0;    --hs-water-lo: #4E7E9C;
   --hs-bloom-a: #E08A3C;  --hs-bloom-b: #C4552E;  --hs-bloom-c: #E0B24C; --hs-bloom-core: #F6D98C;
+  --hs-haze: rgba(192, 138, 84, 0.40);  --hs-trail: #8A6647; --hs-village: #8C6A3C;
 }
 .hillside.season-winter {
   --hs-far: #C9D4DE;      --hs-mid: #AEBECC;      --hs-forest: #5E7A6E;
@@ -1066,11 +1087,15 @@ body {
   --hs-trunk: #5A4638;    --hs-grass-top: #A9BAB4; --hs-grass-bot: #7E938C;
   --hs-water: #AFC9D6;    --hs-water-lo: #7FA6B8;
   --hs-bloom-a: #C9D4DE;  --hs-bloom-b: #C9D4DE;  --hs-bloom-c: #C9D4DE; --hs-bloom-core: #E8F0F6;
+  --hs-haze: rgba(160, 181, 192, 0.40); --hs-trail: #EAEFEF; --hs-village: #6C8285;
 }
 
 /* ---- Depth planes (static — the scene stays alive via its own motion, not the
    pointer; cursor parallax was removed as too much) ---- */
 .hs-plane { position: absolute; inset: 0; }
+/* The foreground detail band rides above the phone's bottom UI — see --fore-lift
+   for the measurements and why the hill planes deliberately do NOT move with it. */
+.hs-fore { bottom: var(--fore-lift, 0px); }
 .hs-plane > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* ---- Terrain fills (each cross-fades on a season change) ---- */
@@ -1087,6 +1112,26 @@ body {
 .hillside.hs-storm  { filter: saturate(0.62) brightness(0.68); }
 .hillside.hs-snow   { filter: saturate(0.8) brightness(1.03); }
 
+/* Golden hour terrain warming (Phase 3 A1) */
+.hillside.hs-golden           { filter: saturate(1.05) brightness(1.04) hue-rotate(-4deg); }
+.hillside.hs-golden.hs-clouds { filter: saturate(0.95) brightness(0.98) hue-rotate(-4deg); }
+.hillside.hs-golden.hs-rain   { filter: saturate(0.78) brightness(0.85) hue-rotate(-4deg); }
+.hillside.hs-golden.hs-storm  { filter: saturate(0.65) brightness(0.70) hue-rotate(-4deg); }
+.hillside.hs-golden.hs-snow   { filter: saturate(0.84) brightness(1.06) hue-rotate(-4deg); }
+
+/* Phase 3 A3: Scroll-linked parallax displacement */
+.hs-plane-far  { transform: translateY(calc(var(--scroll-p, 0) * 2px)); }
+.hs-plane-near { transform: translateY(calc(var(--scroll-p, 0) * 6px)); }
+
+/* Phase 3 A2: Hold-to-peek panel dimming */
+html[data-peek="1"] .welcome-card,
+html[data-peek="1"] .panel-frost,
+html[data-peek="1"] .welcome-card-land {
+  opacity: 0.15;
+  transition: opacity 220ms var(--mo-ease);
+}
+html[data-peek="1"] .tabbar { opacity: 0.3; }
+
 /* ---- Trees ---- */
 .hs-tree-svg { display: block; overflow: visible; }
 .hs-trunk    { fill: var(--hs-trunk);   transition: fill 1.4s ease; }
@@ -1098,8 +1143,26 @@ body {
 .hs-snow-dust-fill { fill: rgba(248, 251, 255, 0.82); }
 .hs-stem { stroke: var(--hs-grass-bot); }
 
+@property --gust {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+@keyframes hs-gust {
+  0%, 62%, 100% { --gust: 1; }
+  74%           { --gust: 2.1; }
+  88%           { --gust: 1.35; }
+}
+
+.hs-tree, .hs-grass, .hs-flower, .hs-fsway {
+  animation-name: hs-sway, hs-gust;
+  animation-duration: var(--sway-dur, 4s), 24s;
+  animation-timing-function: ease-in-out, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+}
+
 .hs-deco { position: absolute; transform-origin: 50% 100%; line-height: 1; }
-.hs-tree { animation: hs-sway var(--sway-dur, 4s) ease-in-out infinite; }
 
 /* Grass blades — the row that "the wind goes through". */
 .hs-grass {
@@ -1107,14 +1170,12 @@ body {
   transform-origin: 50% 100%;
   background: linear-gradient(to top, var(--hs-grass-bot), var(--hs-grass-top));
   transition: background 1.4s ease;
-  animation: hs-sway var(--sway-dur, 4s) ease-in-out infinite;
 }
 
-/* Wind-driven sway — amplitude (--sway-deg) and speed (--sway-dur) are set by
-   the parent from the real wind, so a gale really does lean the trees over. */
+/* Wind-driven sway — amplitude (--sway-deg) multiplied by travelling gust (--gust) */
 @keyframes hs-sway {
-  0%, 100% { transform: rotate(calc(var(--sway-deg, 5deg) * -1)); }
-  50%      { transform: rotate(var(--sway-deg, 5deg)); }
+  0%, 100% { transform: rotate(calc(var(--sway-deg, 5deg) * var(--gust, 1) * -1)); }
+  50%      { transform: rotate(calc(var(--sway-deg, 5deg) * var(--gust, 1))); }
 }
 @keyframes hs-bloom { 0% { transform: scale(0); opacity: 0; } 65% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
 @keyframes hs-flash {
@@ -1182,18 +1243,276 @@ body {
   animation: hs-flash 9s linear infinite;
 }
 
-/* A shimmering wet sheen at the foot when it's raining. */
-.hs-puddle {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 16px;
-  background: linear-gradient(to top, rgba(150, 180, 210, 0.45), rgba(150, 180, 210, 0));
-  animation: hs-shimmer 3.4s ease-in-out infinite;
+/* ── Phase 2: Depth & Population additions ── */
+
+/* S2a: Soft aerial haze layer between far & near planes */
+.hs-haze {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 12%;
+  height: 26%;
+  pointer-events: none;
+  background: linear-gradient(to top,
+    var(--hs-haze) 0%,
+    color-mix(in srgb, var(--hs-haze) 40%, transparent) 55%,
+    transparent 100%);
+  transition: background 1.4s ease;
+}
+
+/* S2b: Mountain reflection on the lake */
+.hs-mtn-reflect path {
+  fill: var(--hs-mid);
+  opacity: 0.18;
+  transition: fill 1.4s ease;
+}
+
+/* S2c: Concentric lake ripples */
+@keyframes hs-ripple {
+  0%   { transform: scale(0.2); opacity: 0.55; }
+  18%  { transform: scale(1);   opacity: 0; }
+  100% { transform: scale(1);   opacity: 0; }
+}
+.hs-ripple ellipse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hs-ripple 22s ease-out infinite;
+  fill: none;
+  stroke: color-mix(in srgb, var(--hs-water) 70%, white);
+  stroke-width: 1.2;
+}
+.hs-ripple ellipse:nth-child(2) { animation-delay: 1.1s; }
+
+/* S1a: Mountain trail */
+.hs-trail {
+  stroke: var(--hs-trail);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 14 9;
+  opacity: 0.5;
+  transition: stroke 1.4s ease;
+}
+
+/* S3a: Distant village & night lamplight */
+.hs-village-silhouette {
+  fill: var(--hs-village);
+  transition: fill 1.4s ease;
+}
+.hs-village-lights rect { fill: #FFC97A; }
+.hs-village-lights rect:nth-child(1) { animation: hs-lamp 11s ease-in-out infinite; }
+.hs-village-lights rect:nth-child(2) { animation: hs-lamp 14s ease-in-out infinite 3s; }
+.hs-village-lights rect:nth-child(3) { animation: hs-lamp  9s ease-in-out infinite 6s; }
+.hs-village-lights rect:nth-child(4) { animation: hs-lamp 12s ease-in-out infinite 2s; }
+.hs-village-lights rect:nth-child(5) { animation: hs-lamp 10s ease-in-out infinite 5s; }
+@keyframes hs-lamp { 0%, 100% { opacity: 0.75; } 50% { opacity: 0.95; } }
+
+/* S3b: Hut smoke */
+.hs-hut-wrapper { position: absolute; line-height: 1; pointer-events: none; }
+.hs-smoke-wrap { position: absolute; left: 18px; top: -4px; width: 20px; height: 40px; pointer-events: none; }
+.hs-smoke-p {
+  position: absolute; left: 0; top: 0; width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(240, 244, 248, 0.65); filter: blur(2.5px);
+  animation: hs-smoke 7s ease-out infinite;
+}
+.hs-smoke-p.puff-2 { animation-delay: 2.3s; }
+.hs-smoke-p.puff-3 { animation-delay: 4.6s; }
+@keyframes hs-smoke {
+  0%   { transform: translate(0, 0) scale(0.5); opacity: 0; }
+  15%  { opacity: 0.34; }
+  100% { transform: translate(var(--wind-x, 8px), -34px) scale(1.7); opacity: 0; }
+}
+.hs-hut-window {
+  opacity: calc(var(--streak-glow, 0.8));
+  transition: opacity 1.2s ease;
+}
+
+/* ── Phase 4 Group A: Journal-linked backdrop elements ── */
+
+/* A1: Trail cairn */
+.hs-cairn { position: absolute; pointer-events: none; }
+@keyframes hs-cairn-drop {
+  0% { transform: translateY(-12px); opacity: 0; }
+  70% { transform: translateY(2px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.hs-cairn-settle {
+  animation: hs-cairn-drop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* A2: Memory lantern */
+@keyframes hs-lantern-rise {
+  0% { transform: translate(0, 0); opacity: 0.85; }
+  70% { opacity: 0.85; }
+  100% { transform: translate(var(--wind-x, 8px), -65vh); opacity: 0; }
+}
+.hs-lantern-wrap {
+  position: absolute; left: 58%; bottom: 25%; pointer-events: none;
+  animation: hs-lantern-rise 50s linear forwards;
+}
+
+/* ── Phase 4 Group C: Transient Weather & Atmosphere ── */
+
+/* C1: Rainbow after rain */
+.hs-rainbow {
+  position: absolute;
+  top: 5%;
+  left: 15%;
+  width: 70%;
+  height: 140px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 100%,
+    transparent 58%,
+    rgba(255, 0, 0, 0.16) 60%,
+    rgba(255, 165, 0, 0.16) 62%,
+    rgba(255, 255, 0, 0.16) 64%,
+    rgba(0, 128, 0, 0.16) 66%,
+    rgba(0, 0, 255, 0.16) 68%,
+    rgba(238, 130, 238, 0.16) 70%,
+    transparent 72%
+  );
+  opacity: 0;
+  animation: hs-rainbow-fade 45s linear forwards;
+}
+@keyframes hs-rainbow-fade {
+  0% { opacity: 0; }
+  8% { opacity: 0.65; }
+  75% { opacity: 0.65; }
+  100% { opacity: 0; }
+}
+
+/* C2: Drying puddles */
+.hs-puddle-drying {
+  animation: hs-puddle-dry 180s linear forwards !important;
+}
+@keyframes hs-puddle-dry {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.4); }
+}
+
+/* C3: Dawn mist */
+.hs-dawn-mist {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 8%;
+  height: 18%;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(255, 210, 150, 0.35), transparent);
+  mix-blend-mode: soft-light;
+  animation: hs-mist-drift 30s ease-in-out infinite alternate;
+}
+@keyframes hs-mist-drift {
+  0% { transform: translateX(-20px); opacity: 0.6; }
+  100% { transform: translateX(20px); opacity: 0.85; }
+}
+
+/* S1c: Hot-air balloon */
+.hs-balloon-container {
+  position: absolute; top: 12%; left: 0; width: 100%; height: 60px;
+  pointer-events: none; overflow: hidden;
+}
+.hs-balloon-wrap {
+  position: absolute; top: 0; left: 0;
+  animation: hs-balloon-cross 110s linear infinite, hs-balloon-bob 9s ease-in-out infinite;
+}
+@keyframes hs-balloon-cross {
+  0% { transform: translateX(-16vw); }
+  37% { transform: translateX(116vw); }
+  100% { transform: translateX(116vw); }
+}
+@keyframes hs-balloon-bob {
+  0%, 100% { margin-top: 0px; }
+  50% { margin-top: -6px; }
+}
+
+/* S4: Dragonfly, Stag, Bird, Tracks */
+.hs-dragonfly {
+  position: absolute; left: 51%; bottom: 15%; pointer-events: none;
+  animation: hs-dfly-hover 4s ease-in-out infinite;
+}
+.hs-dfly-wing { transform-box: fill-box; transform-origin: center; animation: hs-flap 0.08s ease-in-out infinite; }
+@keyframes hs-dfly-hover {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(6px, -4px); }
+  50% { transform: translate(10px, 2px); }
+  75% { transform: translate(4px, -6px); }
+}
+.hs-stag { position: absolute; left: 64%; bottom: 25%; pointer-events: none; }
+.hs-stag-head { transform-origin: 12px 14px; animation: hs-stag-nod 18s ease-in-out infinite; }
+@keyframes hs-stag-nod {
+  0%, 88%, 100% { transform: rotate(0deg); }
+  92%, 96% { transform: rotate(14deg); }
+}
+.hs-bird-nest { position: absolute; left: 17%; bottom: 72px; pointer-events: none; }
+.hs-nest-bird { transform-origin: 50% 100%; animation: hs-bird-shuffle 15s ease-in-out infinite; }
+@keyframes hs-bird-shuffle {
+  0%, 90%, 100% { transform: rotate(0deg); }
+  94% { transform: rotate(-5deg); }
+  97% { transform: rotate(4deg); }
+}
+.hs-tracks {
+  position: absolute; left: 30%; bottom: 8%; width: 140px; height: 20px;
+  pointer-events: none; opacity: 0.65;
+}
+
+/* ── Phase 4 Group D: Celestial & Interactive Depth ── */
+
+/* D1: Constellations */
+.hs-constellations {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.hs-constellation {
+  animation: hs-twinkle 8s ease-in-out infinite alternate;
+}
+@keyframes hs-twinkle {
+  0% { opacity: 0.25; }
+  100% { opacity: 0.65; }
+}
+
+/* D2: Compass Rose on sky tap */
+.hs-compass-rose {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  animation: hs-compass-pop 4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes hs-compass-pop {
+  0% { transform: scale(0.4) rotate(-15deg); opacity: 0; }
+  15% { transform: scale(1) rotate(0deg); opacity: 0.95; }
+  75% { opacity: 0.95; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+/* ── Phase 4 Group E: Depth of Field & Fauna Refinement ── */
+
+/* E2: Depth-of-field blur on far mountain plane for Ultra quality */
+.hillside.hs-ultra .hs-plane-far {
+  filter: blur(0.5px);
+  transition: filter 1.4s ease;
+}
+
+/* E4: Nesting bird periodic takeoff / landing */
+.hs-nest-bird {
+  transform-origin: 50% 100%;
+  animation: hs-bird-shuffle 15s ease-in-out infinite, hs-bird-takeoff 42s ease-in-out infinite;
+}
+@keyframes hs-bird-takeoff {
+  0%, 84%, 100% { transform: translate(0, 0); }
+  87% { transform: translate(8px, -18px) rotate(-10deg); }
+  93% { transform: translate(14px, -12px) rotate(5deg); }
+  97% { transform: translate(4px, -3px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hs-grass, .hs-tree, .hs-flower, .hs-fsway, .hs-butterfly, .hs-bfly-wings, .hs-puddle, .hs-glint,
-  .hs-reflect ellipse, .hs-bee, .hs-bee-wing { animation: none; }
+  .hs-reflect ellipse, .hs-bee, .hs-bee-wing, .hs-ripple ellipse, .hs-village-lights rect,
+  .hs-smoke-p, .hs-balloon-wrap, .hs-dfly-hover, .hs-dfly-wing, .hs-stag-head, .hs-nest-bird,
+  .hs-cairn-settle, .hs-lantern-wrap, .hs-puddle-drying, .hs-dawn-mist, .hs-constellation, .hs-compass-rose { animation: none; }
   .hs-plane { transition: none; }
-  .hs-lightning { display: none; }
+  .hs-lightning, .hs-dragonfly, .hs-balloon-container, .hs-lantern-wrap, .hs-rainbow, .hs-compass-rose { display: none; }
 }
 
 /* Rendered Markdown — a calm, notebook-like reading style for journal entries. */
@@ -1806,6 +2125,28 @@ body {
   :root { --tabbar-clear: calc(3.5rem + env(safe-area-inset-bottom)); }
 }
 
+/* How far the scene's FOREGROUND detail band (grass, wildflowers, tree bases,
+   the signpost, the hut, the bees) is raised on a phone — 0 on desktop.
+   Measured 2026-08-12 at 390x844: BACKDROP_BRIEF Phase 1 lifted `.hillside` by
+   exactly `--tabbar-clear`, which put the scene's floor FLUSH with the tab bar's
+   top edge. That cleared the bar, but two things still sat on the detail:
+   the bar's own 22px legibility scrim (thinned below), and — the real occluder —
+   the Write/Map FAB row, which is anchored to `calc(var(--tabbar-clear) + 1rem)`
+   and so spans roughly `--tabbar-clear + 1rem` → `+ 3.6rem`. The grass row lived
+   at 56–67px from the bottom while those buttons covered 72–114px.
+     Raising the whole `.hillside` was the obvious fix and is WRONG: the hill
+   planes would rise with it, leaving a band of flat page colour between the
+   grass and the bar — a landscape visibly floating off the foot of the screen.
+   So only `.hs-fore` moves. The SVG hill planes still reach the bar (no gap),
+   and the detail they carry now sits on the front hill's face, clear of the
+   buttons. 3.75rem is `1rem + 3.6rem` rounded up for breathing room, and it
+   works at both `env(safe-area-inset-bottom)` = 0 (browser) and ~34px (his
+   iPhone standalone) because the FABs are anchored to the same token. */
+:root { --fore-lift: 0px; }
+@media (max-width: 767px) {
+  :root { --fore-lift: 3.75rem; }
+}
+
 /* Detail panes (EventCard/DayDetail/TripDetail/JournalEditor, all wrapped in
    .pane-frost by MainPane.tsx) need this same clearance so their last row of
    content/buttons isn't hidden behind the fixed tab bar. No media query
@@ -1813,6 +2154,39 @@ body {
    root gets the equivalent reservation directly via a Tailwind arbitrary
    value, since it isn't a `.pane-frost`.) */
 .pane-frost { padding-bottom: var(--tabbar-clear); }
+
+/* ── Frosted bottom tab bar (BACKDROP_BRIEF Phase 1 T2-T4) ──
+   Joins the frosted-surface family; max(..., 0.7) alpha floor preserves 11px text legibility.
+   Deliberately stays frosted on phones, unlike full-screen .pane-frost panes. */
+.tabbar {
+  background-color: color-mix(in srgb, var(--color-surface)
+    calc(max(var(--card-alpha, 0.9), 0.7) * 100%), transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-top-color: color-mix(in srgb, var(--color-water) 45%, transparent);
+}
+
+/* Legibility scrim: softens the bar's top edge. Thinned from 22px/55% to 10px/30%
+   on 2026-08-12 — measured at 390x844, the original band covered 57–79px from the
+   bottom while the grass row sat at 56–67px, so the scrim written to protect the
+   11px labels was washing out the very detail Phase 1 had just uncovered. The
+   labels don't need it: the bar itself is already 92% opaque at the `low` tier and
+   ≥70% at every other, which is what actually carries their contrast. */
+.tabbar::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: -10px; height: 10px;
+  background: linear-gradient(to top,
+    color-mix(in srgb, var(--color-surface) 30%, transparent), transparent);
+  pointer-events: none;
+}
+
+/* Graphics quality gate: low tier disables backdrop blur to save GPU power on entry-level devices. */
+html[data-gfx="low"] .tabbar {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: color-mix(in srgb, var(--color-surface) 92%, transparent);
+}
 
 /* ── Bottom tab bar — travelling indicator (P1) ──
    Same measured-rect technique as `.sidebar-tab-underline` (M12), mirrored to

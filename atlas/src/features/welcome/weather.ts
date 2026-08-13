@@ -16,6 +16,8 @@ export interface CurrentWeather {
    *  null if the provider omitted it). Drives how hard the backdrop's trees/grass
    *  sway and how far rain/particles slant. */
   windKph?: number | null;
+  /** Meteorological wind direction in degrees (0..360; 0=North, 90=East). */
+  windDir?: number | null;
 }
 
 /** WMO weather-interpretation codes → a short label and an emoji. */
@@ -61,7 +63,7 @@ export async function fetchCurrentWeather(
 ): Promise<CurrentWeather | null> {
   try {
     const res = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m`,
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m`,
       { signal },
     );
     if (!res.ok) return null;
@@ -70,8 +72,16 @@ export async function fetchCurrentWeather(
     const code = d?.current?.weather_code;
     if (typeof t !== 'number' || typeof code !== 'number') return null;
     const w = d?.current?.wind_speed_10m;
+    const wd = d?.current?.wind_direction_10m;
     const { label, emoji } = describeWeatherCode(code);
-    return { temperatureC: t, code, label, emoji, windKph: typeof w === 'number' ? w : null };
+    return {
+      temperatureC: t,
+      code,
+      label,
+      emoji,
+      windKph: typeof w === 'number' ? w : null,
+      windDir: typeof wd === 'number' ? wd : null,
+    };
   } catch {
     return null;
   }

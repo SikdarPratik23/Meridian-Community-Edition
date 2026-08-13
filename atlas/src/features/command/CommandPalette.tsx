@@ -8,6 +8,7 @@ import { MAP_STYLE_OPTIONS } from '../map/mapStyle';
 import { highlightParts, rank, type Rankable } from './commandSearch';
 import { useEffectiveMotion } from '../../hooks/useEffectiveMotion';
 import { stagger } from '../../utils/motion';
+import { toast } from '../../components/ui/toasts';
 import type { AnyEvent } from '../../types';
 
 /**
@@ -34,7 +35,7 @@ import type { AnyEvent } from '../../types';
  * can't go stale relative to the journal.
  */
 
-type CommandGroup = 'Actions' | 'Entries' | 'Days' | 'Trips';
+type CommandGroup = 'Actions' | 'Settings' | 'Trips' | 'Days' | 'Entries';
 
 interface Command extends Rankable {
   id: string;
@@ -42,6 +43,8 @@ interface Command extends Rankable {
   /** Shown right-aligned, dimmed — a date, a place, a hint. */
   detail?: string;
   glyph: string;
+  /** If true, only appears in search results when a search query is typed (keeps default open list clean) */
+  searchOnly?: boolean;
   run: () => void;
 }
 
@@ -56,9 +59,16 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
   const selectTrip = useAtlasStore((s) => s.selectTrip);
   const startComposing = useAtlasStore((s) => s.startComposing);
   const setYearReviewOpen = useAtlasStore((s) => s.setYearReviewOpen);
+  const navigateTab = useAtlasStore((s) => s.navigateTab);
   const update = useSettings((s) => s.update);
   const theme = useSettings((s) => s.theme);
+  const language = useSettings((s) => s.language);
   const mapStyle = useSettings((s) => s.mapStyle);
+  const tempUnit = useSettings((s) => s.tempUnit);
+  const coordFormat = useSettings((s) => s.coordFormat);
+  const fontSize = useSettings((s) => s.fontSize);
+  const motionSetting = useSettings((s) => s.motion);
+  const graphicsQuality = useSettings((s) => s.graphicsQuality);
 
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -103,7 +113,7 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
     const live = events.filter((e) => !e.deleted_at);
     const list: Command[] = [];
 
-    // ── Actions ──
+    // ── Primary Actions (visible in clean default list) ──
     list.push({
       id: 'action:new',
       group: 'Actions',
@@ -129,8 +139,6 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
       keywords: ['dark', 'light', 'night', 'appearance', 'theme'],
       run: () => update('theme', theme === 'dark' ? 'light' : 'dark'),
     });
-    // One command that steps through the basemaps in MAP_STYLE_OPTIONS order,
-    // rather than one command per style cluttering the default list.
     const at = Math.max(0, MAP_STYLE_OPTIONS.findIndex((o) => o.id === mapStyle));
     const nextStyle = MAP_STYLE_OPTIONS[(at + 1) % MAP_STYLE_OPTIONS.length];
     list.push({
@@ -141,6 +149,262 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
       detail: `now: ${MAP_STYLE_OPTIONS[at].label.toLowerCase()}`,
       keywords: ['map', 'basemap', 'tiles', 'style', 'satellite', 'imagery', 'hybrid', 'parchment', 'osm'],
       run: () => update('mapStyle', nextStyle.id),
+    });
+    list.push({
+      id: 'action:sync',
+      group: 'Actions',
+      label: 'Sync now',
+      glyph: '🔄',
+      searchOnly: true,
+      keywords: ['sync', 'synchronize', 'backup', 'file link', 'cloud', 'push', 'pull'],
+      run: async () => {
+        const { runSync } = await import('../../data/sync');
+        const r = await runSync();
+        if (r.ok) {
+          toast.success('Journal synced');
+        } else {
+          toast.error('Sync failed — check Data → Sync folder');
+        }
+      },
+    });
+
+    // ── Search-Only Settings & Preferences (only reveal when searching) ──
+    list.push({
+      id: 'settings:open',
+      group: 'Settings',
+      label: 'Open Settings',
+      glyph: '⚙',
+      searchOnly: true,
+      keywords: ['settings', 'preferences', 'configuration', 'options', 'setup', 'tools'],
+      run: () => navigateTab('settings'),
+    });
+    list.push({
+      id: 'settings:theme-light',
+      group: 'Settings',
+      label: 'Theme: Light (Cartographer)',
+      glyph: '☀',
+      detail: theme === 'light' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['theme', 'light', 'appearance', 'day', 'white', 'parchment', 'settings'],
+      run: () => update('theme', 'light'),
+    });
+    list.push({
+      id: 'settings:theme-dark',
+      group: 'Settings',
+      label: 'Theme: Dark (Nocturnal)',
+      glyph: '☾',
+      detail: theme === 'dark' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['theme', 'dark', 'night', 'appearance', 'black', 'slate', 'settings'],
+      run: () => update('theme', 'dark'),
+    });
+    list.push({
+      id: 'settings:theme-system',
+      group: 'Settings',
+      label: 'Theme: Follow System OS',
+      glyph: '🌓',
+      detail: theme === 'system' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['theme', 'system', 'automatic', 'os', 'appearance', 'settings'],
+      run: () => update('theme', 'system'),
+    });
+    list.push({
+      id: 'settings:lang-en',
+      group: 'Settings',
+      label: 'Language: English',
+      glyph: '🌐',
+      detail: language === 'en' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['language', 'english', 'locale', 'i18n', 'translation', 'settings'],
+      run: () => update('language', 'en'),
+    });
+    list.push({
+      id: 'settings:lang-bn',
+      group: 'Settings',
+      label: 'Language: বাংলা (Bengali)',
+      glyph: '🌐',
+      detail: language === 'bn' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['language', 'bengali', 'bangla', 'বাংলা', 'locale', 'i18n', 'translation', 'settings'],
+      run: () => update('language', 'bn'),
+    });
+    // Font / text size settings
+    list.push({
+      id: 'settings:font:small',
+      group: 'Settings',
+      label: 'Text size: Small (Compact)',
+      glyph: 'Aa',
+      detail: fontSize === 'small' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['font size', 'text size', 'compact', 'small', 'typography', 'scale', 'settings'],
+      run: () => update('fontSize', 'small'),
+    });
+    list.push({
+      id: 'settings:font:medium',
+      group: 'Settings',
+      label: 'Text size: Medium (Default)',
+      glyph: 'Aa',
+      detail: fontSize === 'medium' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['font size', 'text size', 'medium', 'default', 'typography', 'scale', 'settings'],
+      run: () => update('fontSize', 'medium'),
+    });
+    list.push({
+      id: 'settings:font:large',
+      group: 'Settings',
+      label: 'Text size: Large',
+      glyph: 'Aa',
+      detail: fontSize === 'large' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['font size', 'text size', 'large', 'big text', 'typography', 'scale', 'settings'],
+      run: () => update('fontSize', 'large'),
+    });
+    list.push({
+      id: 'settings:font:xlarge',
+      group: 'Settings',
+      label: 'Text size: Extra Large',
+      glyph: 'Aa',
+      detail: fontSize === 'x-large' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['font size', 'text size', 'extra large', 'xl', 'huge text', 'typography', 'scale', 'settings'],
+      run: () => update('fontSize', 'x-large'),
+    });
+    // Animation / motion settings
+    list.push({
+      id: 'settings:motion:full',
+      group: 'Settings',
+      label: 'Interface motion: Full animations',
+      glyph: '✨',
+      detail: motionSetting === 'full' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['motion', 'animation', 'smooth', 'transitions', 'full animations', 'effects', 'settings'],
+      run: () => update('motion', 'full'),
+    });
+    list.push({
+      id: 'settings:motion:reduced',
+      group: 'Settings',
+      label: 'Interface motion: Reduced motion',
+      glyph: '✨',
+      detail: motionSetting === 'reduced' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['motion', 'animation', 'reduced motion', 'subtle', 'settings'],
+      run: () => update('motion', 'reduced'),
+    });
+    list.push({
+      id: 'settings:motion:off',
+      group: 'Settings',
+      label: 'Interface motion: Off (Instant)',
+      glyph: '⚡',
+      detail: motionSetting === 'off' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['motion', 'animation', 'disable animation', 'instant', 'no motion', 'off', 'settings'],
+      run: () => update('motion', 'off'),
+    });
+    // Graphics quality settings
+    list.push({
+      id: 'settings:graphics:low',
+      group: 'Settings',
+      label: 'Graphics: Low (Battery saver)',
+      glyph: '🔋',
+      detail: graphicsQuality === 'low' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['graphics', 'quality', 'low', 'battery', 'saver', 'performance', 'backdrop', 'scene', 'settings'],
+      run: () => update('graphicsQuality', 'low'),
+    });
+    list.push({
+      id: 'settings:graphics:medium',
+      group: 'Settings',
+      label: 'Graphics: Medium',
+      glyph: '🖥',
+      detail: graphicsQuality === 'medium' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['graphics', 'quality', 'medium', 'balanced', 'backdrop', 'scene', 'settings'],
+      run: () => update('graphicsQuality', 'medium'),
+    });
+    list.push({
+      id: 'settings:graphics:high',
+      group: 'Settings',
+      label: 'Graphics: High',
+      glyph: '🌟',
+      detail: graphicsQuality === 'high' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['graphics', 'quality', 'high', 'atmosphere', 'particles', 'backdrop', 'scene', 'settings'],
+      run: () => update('graphicsQuality', 'high'),
+    });
+    list.push({
+      id: 'settings:graphics:ultra',
+      group: 'Settings',
+      label: 'Graphics: Ultra (WebGL atmosphere)',
+      glyph: '✨',
+      detail: graphicsQuality === 'ultra' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['graphics', 'quality', 'ultra', 'webgl', 'atmosphere', 'particles', 'backdrop', 'scene', 'settings'],
+      run: () => update('graphicsQuality', 'ultra'),
+    });
+    // Map basemap style options
+    for (const opt of MAP_STYLE_OPTIONS) {
+      list.push({
+        id: `settings:mapstyle:${opt.id}`,
+        group: 'Settings',
+        label: `Map Style: ${opt.label}`,
+        glyph: '🗺',
+        detail: mapStyle === opt.id ? 'active' : undefined,
+        searchOnly: true,
+        keywords: ['map', 'basemap', 'style', 'satellite', 'hybrid', 'parchment', 'osm', 'tiles', opt.label.toLowerCase(), 'settings'],
+        run: () => update('mapStyle', opt.id),
+      });
+    }
+    // Temperature unit settings
+    list.push({
+      id: 'settings:temp-c',
+      group: 'Settings',
+      label: 'Temperature Unit: Celsius (°C)',
+      glyph: '🌡',
+      detail: tempUnit === 'C' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['temperature', 'celsius', 'degrees', 'weather', 'unit', 'settings'],
+      run: () => update('tempUnit', 'C'),
+    });
+    list.push({
+      id: 'settings:temp-f',
+      group: 'Settings',
+      label: 'Temperature Unit: Fahrenheit (°F)',
+      glyph: '🌡',
+      detail: tempUnit === 'F' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['temperature', 'fahrenheit', 'degrees', 'weather', 'unit', 'settings'],
+      run: () => update('tempUnit', 'F'),
+    });
+    // Coordinates format settings
+    list.push({
+      id: 'settings:coords:dd',
+      group: 'Settings',
+      label: 'Coordinates Format: Decimal Degrees (DD)',
+      glyph: '📍',
+      detail: coordFormat === 'decimal' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['coordinates', 'format', 'gps', 'location', 'decimal', 'latitude', 'longitude', 'settings'],
+      run: () => update('coordFormat', 'decimal'),
+    });
+    list.push({
+      id: 'settings:coords:dms',
+      group: 'Settings',
+      label: 'Coordinates Format: Degrees, Minutes, Seconds (DMS)',
+      glyph: '📍',
+      detail: coordFormat === 'dms' ? 'active' : undefined,
+      searchOnly: true,
+      keywords: ['coordinates', 'format', 'gps', 'location', 'dms', 'degrees', 'latitude', 'longitude', 'settings'],
+      run: () => update('coordFormat', 'dms'),
+    });
+    // Data & Export
+    list.push({
+      id: 'settings:data',
+      group: 'Settings',
+      label: 'Data, Backup & Export options',
+      glyph: '🗃',
+      searchOnly: true,
+      keywords: ['data', 'export', 'backup', 'import', 'sync', 'geojson', 'gpx', 'markdown', 'settings'],
+      run: () => navigateTab('data'),
     });
 
     // ── Trips ──
@@ -163,7 +427,7 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
       const key = getDayKey(event.timestamp);
       if (seenDays.has(key)) continue;
       seenDays.add(key);
-      const count = live.filter((e) => getDayKey(e.timestamp) === key).length;
+      const count = live.filter((ev) => getDayKey(ev.timestamp) === key).length;
       list.push({
         id: `day:${key}`,
         group: 'Days',
@@ -197,9 +461,14 @@ export default function CommandPalette({ onClose }: { onClose: () => void }) {
     }
 
     return list;
-  }, [events, theme, mapStyle, startComposing, setYearReviewOpen, update, selectTrip, selectDay, selectEvent]);
+  }, [events, theme, language, mapStyle, tempUnit, coordFormat, fontSize, motionSetting, graphicsQuality, startComposing, setYearReviewOpen, navigateTab, update, selectTrip, selectDay, selectEvent]);
 
-  const results = useMemo(() => rank(commands, query, 50), [commands, query]);
+  const results = useMemo(() => {
+    if (!query.trim()) {
+      return commands.filter((c) => !c.searchOnly).map((item) => ({ item, score: 0, indices: [] }));
+    }
+    return rank(commands, query, 50);
+  }, [commands, query]);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 

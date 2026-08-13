@@ -301,11 +301,13 @@ export default function JournalEditor({ event, onClose }: { event?: JournalEntry
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
   // Ask for the current position once; seed the draft location with it if nothing is set yet.
-  useEffect(() => { geo.requestPosition(); }, []);
+  const requestPosition = geo.requestPosition;
+  useEffect(() => { requestPosition(); }, [requestPosition]);
   useEffect(() => {
     if (geo.latitude != null && geo.longitude != null && !draftLocation) {
       setDraftLocation([geo.longitude, geo.latitude]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geo.latitude, geo.longitude]);
 
   // Lightweight crash-safety: keep a text draft in localStorage. Only for new

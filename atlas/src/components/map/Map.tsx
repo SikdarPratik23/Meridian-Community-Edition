@@ -553,6 +553,7 @@ export default function MapView({
       map.remove();
       mapRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fly to the selected entry (also the target for future "location cues").

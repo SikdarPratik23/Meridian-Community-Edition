@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Scene } from '../features/welcome/scene';
+import { windSignFor } from '../features/welcome/scene';
 import type { QualityProfile } from '../features/welcome/quality';
 
 /**
@@ -138,25 +139,34 @@ export default function ParticleField({ scene, profile }: { scene: Scene; profil
       }
     };
 
+    const startTime = performance.now();
     let particles: P[] = Array.from({ length: N }, () => spawn(true));
 
     let raf = 0;
     const draw = () => {
       const s = sceneRef.current;
       const wind = s.wind; // 0..1
+      const windSign = windSignFor(s.windDir);
       ctx.clearRect(0, 0, W, H);
+
+      // A4: Weather ramp-in — ramp the DRAW over 4s rather than snapping all N particles on re-seed.
+      // Asymmetric by design: ramp-in delivers weather arrival, kind changes snap instantly.
+      const elapsed = performance.now() - startTime;
+      const activeCount = Math.min(N, Math.ceil((N * elapsed) / 4000));
+      const activeParticles = particles.slice(0, activeCount);
 
       switch (kind) {
         case 'rain': {
-          const slant = 1.2 + wind * 7;
+          const slant = (1.2 + wind * 7) * windSign;
           ctx.strokeStyle = 'rgba(164,186,214,0.5)';
           ctx.lineWidth = 1.1;
           ctx.beginPath();
-          for (const p of particles) {
+          for (const p of activeParticles) {
             p.x += slant;
             p.y += p.vy + wind * 3;
             if (p.y > H) { p.y = rand(-40, 0); p.x = rand(-40, W); }
-            if (p.x > W) p.x -= W + 40;
+            if (p.x > W + 40) p.x -= W + 40;
+            if (p.x < -40) p.x += W + 40;
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p.x - slant * 0.9, p.y - p.size);
           }
@@ -165,9 +175,9 @@ export default function ParticleField({ scene, profile }: { scene: Scene; profil
         }
         case 'snow': {
           ctx.fillStyle = 'rgba(255,255,255,0.9)';
-          for (const p of particles) {
+          for (const p of activeParticles) {
             p.phase += 0.02;
-            p.x += Math.sin(p.phase) * 0.5 + wind * 2.2;
+            p.x += (Math.sin(p.phase) * 0.5 + wind * 2.2) * windSign;
             p.y += p.vy;
             if (p.y > H) { p.y = rand(-20, -4); p.x = rand(0, W); }
             if (p.x > W + 8) p.x = -8;
@@ -182,10 +192,10 @@ export default function ParticleField({ scene, profile }: { scene: Scene; profil
         }
         case 'leaves':
         case 'petals': {
-          for (const p of particles) {
+          for (const p of activeParticles) {
             p.phase += 0.02;
             p.rot += p.vrot;
-            p.x += p.vx + Math.sin(p.phase) * 0.6 + wind * 2.4;
+            p.x += (p.vx + Math.sin(p.phase) * 0.6 + wind * 2.4) * windSign;
             p.y += p.vy;
             if (p.y > H + 12) { p.y = rand(-30, -8); p.x = rand(0, W); }
             if (p.x > W + 12) p.x = -12;
@@ -205,9 +215,9 @@ export default function ParticleField({ scene, profile }: { scene: Scene; profil
           break;
         }
         case 'pollen': {
-          for (const p of particles) {
+          for (const p of activeParticles) {
             p.phase += 0.015;
-            p.x += Math.sin(p.phase) * 0.4 + wind * 1.2;
+            p.x += (Math.sin(p.phase) * 0.4 + wind * 1.2) * windSign;
             p.y += p.vy;
             if (p.y < -6) { p.y = H + rand(0, 20); p.x = rand(0, W); }
             const a = 0.25 + 0.4 * (0.5 + 0.5 * Math.sin(p.phase * 1.6));
@@ -221,7 +231,7 @@ export default function ParticleField({ scene, profile }: { scene: Scene; profil
           break;
         }
         case 'fireflies': {
-          for (const p of particles) {
+          for (const p of activeParticles) {
             p.phase += 0.03 + p.seed * 0.02;
             // gentle wandering
             p.vx += rand(-0.02, 0.02);

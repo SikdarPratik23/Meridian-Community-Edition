@@ -542,7 +542,7 @@ export default function SettingsView() {
             className={inputClass}
             value={s.name}
             onChange={(e) => s.update('name', e.target.value)}
-            placeholder="e.g. Ada"
+            placeholder="e.g. Pratik"
           />
         </Field>
         <Field label="Title / role">

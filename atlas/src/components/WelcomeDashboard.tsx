@@ -49,6 +49,7 @@ export default function WelcomeDashboard() {
   const setWeatherCode = useAtlasStore((s) => s.setWeatherCode);
   const setCoords = useAtlasStore((s) => s.setCoords);
   const setWindKph = useAtlasStore((s) => s.setWindKph);
+  const setWindDir = useAtlasStore((s) => s.setWindDir);
   const dayPhase = useAtlasStore((s) => s.dayPhase);
   const geo = useGeolocation();
 
@@ -72,21 +73,22 @@ export default function WelcomeDashboard() {
   // bottom of the welcome screen (desktop shows it in the insights rail instead).
   const [showCalendar, setShowCalendar] = useState(false);
 
+  const requestPosition = geo.requestPosition;
   useEffect(() => {
-    geo.requestPosition();
-  }, []);
+    requestPosition();
+  }, [requestPosition]);
 
   // Re-check location whenever you return to the app, so the day/night cycle
   // follows you if you've travelled. Silent once permission is granted.
   useEffect(() => {
-    const refresh = () => { if (document.visibilityState === 'visible') geo.requestPosition(); };
+    const refresh = () => { if (document.visibilityState === 'visible') requestPosition(); };
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
     return () => {
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
     };
-  }, [geo.requestPosition]);
+  }, [requestPosition]);
 
   // Share coordinates app-wide (day/night cycle, POI lookups, etc.).
   useEffect(() => {
@@ -113,11 +115,12 @@ export default function WelcomeDashboard() {
         setWeather(wx);
         setWeatherCode(wx?.code ?? null);
         setWindKph(wx?.windKph ?? null);
+        setWindDir(wx?.windDir ?? null);
       })
       .catch(() => {})
       .finally(() => setLookupDone(true));
     return () => ctrl.abort();
-  }, [geo.latitude, geo.longitude, onlineLookups, setWeatherCode, setWindKph]);
+  }, [geo.latitude, geo.longitude, onlineLookups, setWeatherCode, setWindKph, setWindDir]);
 
   const now = new Date();
   const dateLabel = now.toLocaleDateString(undefined, {
@@ -220,7 +223,7 @@ export default function WelcomeDashboard() {
           section below carries its own entrance + stagger index, so the
           welcome screen cascades in (hero → focus → ribbon → cards →
           stats/calendar) instead of the whole thing appearing at once. ── */}
-      <div className="welcome-card rounded-xl border border-water p-4 sm:p-5 animate-fade-in-up" style={stagger(0)}>
+      <div className="welcome-card select-none cursor-default rounded-xl border border-water p-4 sm:p-5 animate-fade-in-up" style={stagger(0)}>
         <div className="flex items-start gap-3 sm:gap-4">
           <div className="shrink-0 text-3xl animate-floaty">🧭</div>
           <div className="min-w-0 flex-1">
@@ -228,7 +231,7 @@ export default function WelcomeDashboard() {
               {greetingFor(now.getHours())}{name ? `, ${name}` : ''}
               <button
                 onClick={editName}
-                className="ml-2 align-middle text-xs font-normal text-ink/30 hover:text-ink"
+                className="ml-2 align-middle text-xs font-normal text-ink/30 hover:text-ink cursor-pointer pointer-events-auto"
                 title={name ? 'Edit your name' : 'Add your name'}
               >
                 {name ? '✎' : '+ name'}
@@ -255,7 +258,7 @@ export default function WelcomeDashboard() {
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 sm:justify-between">
           <button
             onClick={() => startComposing('journal')}
-            className="btn btn-primary btn-lg order-1 sm:order-2"
+            className="btn btn-primary btn-lg order-1 sm:order-2 cursor-pointer pointer-events-auto"
           >
             + New entry
           </button>

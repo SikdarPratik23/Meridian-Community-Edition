@@ -42,6 +42,8 @@ export const bn: Partial<Record<keyof typeof en, string>> = {
   'nav.hide': 'লুকান',
   'nav.showList': 'তালিকা দেখান',
   'nav.tagline': 'মাঠের দিনলিপি',
+  'welcome.peekHint': 'দৃশ্যটি দেখতে যেকোনো স্থানে চেপে ধরে রাখুন',
+  'welcome.compassHint': 'সঠিক উত্তর দেখতে আকাশে ট্যাপ করুন',
   'nav.openSettings': 'সেটিংস খুলুন',
 
   // ── Capture FAB ──

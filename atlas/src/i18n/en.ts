@@ -39,6 +39,8 @@ export const en = {
   'nav.hide': 'Hide',
   'nav.showList': 'Show the list',
   'nav.tagline': 'field journal',
+  'welcome.peekHint': 'Press and hold anywhere to reveal the scene',
+  'welcome.compassHint': 'Tap the sky to find true north',
   'nav.openSettings': 'Open settings',
 
   // ── Capture FAB ──

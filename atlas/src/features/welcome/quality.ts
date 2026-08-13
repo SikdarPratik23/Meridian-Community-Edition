@@ -59,6 +59,12 @@ export interface QualityProfile {
   reflections: boolean;
   /** A bee or two bobbing over the flowers on warm days. */
   bees: boolean;
+  /** A hot-air balloon drifting across the sky on clear days (Medium+). */
+  balloon: boolean;
+  /** A memory lantern rising on entry anniversaries (Medium+). */
+  memoryLantern: boolean;
+  /** Seasonal fauna (dragonfly, stag, nesting bird, winter tracks). */
+  seasonalCritters: boolean;
   /** Enable the WebGL atmosphere layer (volumetric haze + light shafts) on top
    *  of the hybrid scene (High/Ultra). Feature-detected at runtime; the hybrid
    *  SVG + canvas scene stays the fallback and default renderer. */
@@ -69,7 +75,7 @@ const PROFILES: Record<GraphicsQuality, QualityProfile> = {
   low: {
     tier: 'low',
     label: 'Low',
-    blurb: 'Lightest — the landscape, sky and gentle weather. Smoothest on any device and easiest on the battery.',
+    blurb: 'Lightest — the landscape, sky, village & hut with streak window glow, trail cairn, and gentle weather. Smoothest on any device and easiest on the battery.',
     particleScale: 0.4,
     maxDpr: 1.5,
     ambientLife: false,
@@ -82,12 +88,15 @@ const PROFILES: Record<GraphicsQuality, QualityProfile> = {
     butterfly: false,
     reflections: false,
     bees: false,
+    balloon: false,
+    memoryLantern: false,
+    seasonalCritters: false,
     webgl: false,
   },
   medium: {
     tier: 'medium',
     label: 'Medium',
-    blurb: 'Balanced — adds drifting seasonal particles, gliding birds, sunbeams and a butterfly on warm days.',
+    blurb: 'Balanced — adds aerial haze, memory lantern, drifting balloon, mountain hut smoke, nesting bird, drifting seasonal particles, birds and butterfly.',
     particleScale: 0.75,
     maxDpr: 2,
     ambientLife: true,
@@ -100,12 +109,15 @@ const PROFILES: Record<GraphicsQuality, QualityProfile> = {
     butterfly: true,
     reflections: false,
     bees: false,
+    balloon: true,
+    memoryLantern: true,
+    seasonalCritters: false,
     webgl: false,
   },
   high: {
     tier: 'high',
     label: 'High',
-    blurb: 'Rich — full atmosphere: fog, northern lights, water reflections, bees, a night shooting star and denser weather.',
+    blurb: 'Rich — full atmosphere: fog, water reflections & ripples, memory lantern, dragonflies & stags, northern lights, bees, shooting star and denser weather.',
     particleScale: 1,
     maxDpr: 2,
     ambientLife: true,
@@ -118,12 +130,15 @@ const PROFILES: Record<GraphicsQuality, QualityProfile> = {
     butterfly: true,
     reflections: true,
     bees: true,
+    balloon: true,
+    memoryLantern: true,
+    seasonalCritters: true,
     webgl: true,
   },
   ultra: {
     tier: 'ultra',
     label: 'Ultra',
-    blurb: 'Maximum — GPU atmosphere (volumetric haze + light shafts), the densest particles and the sharpest scene. Best on a powerful device.',
+    blurb: 'Maximum — GPU atmosphere (volumetric haze & light shafts), densest particles, sharpest reflections and all seasonal fauna. Best on a powerful device.',
     particleScale: 1.5,
     maxDpr: 2.5,
     ambientLife: true,
@@ -136,6 +151,9 @@ const PROFILES: Record<GraphicsQuality, QualityProfile> = {
     butterfly: true,
     reflections: true,
     bees: true,
+    balloon: true,
+    memoryLantern: true,
+    seasonalCritters: true,
     webgl: true,
   },
 };

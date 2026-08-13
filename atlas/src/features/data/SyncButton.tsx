@@ -8,7 +8,7 @@ import { runSync } from '../../data/sync';
  * (phone). Only appears once a sync file is linked; otherwise there's nothing
  * to sync and the full setup lives in Data → Sync folder.
  */
-export default function SyncButton() {
+export default function SyncButton({ className }: { className?: string } = {}) {
   const fileName = useSyncLink((s) => s.fileName);
   const permitted = useSyncLink((s) => s.permitted);
   const [busy, setBusy] = useState(false);
@@ -34,6 +34,14 @@ export default function SyncButton() {
         ? "Sync failed — open Data → Sync folder"
         : 'Sync now';
 
+  const defaultClasses = `btn btn-sm btn-icon transition-all active:scale-95 ${
+    flash === 'ok'
+      ? 'border-forest bg-forest/10 text-forest'
+      : flash === 'err'
+        ? 'border-red-500 bg-red-500/10 text-red-500'
+        : 'btn-secondary text-terracotta hover:bg-land'
+  }`;
+
   return (
     <button
       type="button"
@@ -41,16 +49,11 @@ export default function SyncButton() {
       disabled={busy}
       title={title}
       aria-label={title}
-      className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold shadow-sm transition-all active:scale-95 ${
-        flash === 'ok'
-          ? 'border-forest bg-forest/10 text-forest'
-          : flash === 'err'
-            ? 'border-red-500 bg-red-500/10 text-red-500'
-            : 'border-terracotta/40 bg-terracotta/10 text-terracotta hover:bg-terracotta/20 hover:border-terracotta/60'
-      }`}
+      className={className || defaultClasses}
     >
-      <span className={busy ? 'animate-spin' : ''}>{flash === 'ok' ? '✓' : flash === 'err' ? '!' : '🔄'}</span>
-      <span>{busy ? 'Syncing' : 'Sync'}</span>
+      <span className={`text-base leading-none ${busy ? 'animate-spin' : ''}`}>
+        {flash === 'ok' ? '✓' : flash === 'err' ? '!' : '🔄'}
+      </span>
     </button>
   );
 }

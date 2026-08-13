@@ -26,7 +26,6 @@ function renderPane(v: View) {
 export default function Sidebar() {
   const t = useT();
   const toggleSidebar = useAtlasStore((s) => s.toggleSidebar);
-  const setPaletteOpen = useAtlasStore((s) => s.setPaletteOpen);
   const startComposing = useAtlasStore((s) => s.startComposing);
   const composing = useAtlasStore((s) => s.composing);
 
@@ -82,25 +81,16 @@ export default function Sidebar() {
       style={{ paddingBottom: 'var(--tabbar-clear)' }}
     >
       {/* Header */}
-      <div className="safe-pt px-3 pb-3 border-b border-water">
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <h1 className="font-serif text-xl font-bold tracking-tight leading-none">Meridian</h1>
-            <p className="text-[11px] text-ink/40 mt-0.5 tracking-wide">{t('nav.tagline')}</p>
+      <div className="safe-pt px-3.5 pt-3 pb-3 border-b border-water">
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="select-none cursor-default">
+            <h1 className="font-serif text-xl font-bold tracking-tight leading-none text-ink">Meridian</h1>
+            <p className="text-[10px] text-ink/40 mt-1 tracking-wider uppercase font-sans font-medium">{t('nav.tagline')}</p>
           </div>
-          <div className="flex items-center gap-2">
-            {/* The palette's ⌘K shortcut is unreachable on a phone, so it needs a
-                real button. Shown on every form factor — on desktop the title
-                advertises the shortcut rather than hiding it. */}
-            <button
-              onClick={() => setPaletteOpen(true)}
-              className="btn btn-secondary btn-sm btn-icon"
-              title="Jump to anything (Ctrl/⌘ K)"
-              aria-label="Open the command palette"
-            >
-              <span className="text-base leading-none">🔍</span>
-            </button>
-            <SyncButton />
+          <div className="flex items-center gap-1.5">
+            <div className="hidden md:inline-flex">
+              <SyncButton />
+            </div>
             {/* Settings gear + column-collapse are desktop-only chrome now — on a
                 phone, Settings is its own tab and there's no drawer left to hide
                 (BottomTabBar.tsx is the only mobile navigation, P1). */}
@@ -113,30 +103,29 @@ export default function Sidebar() {
             >
               <span className="text-base leading-none">⚙</span>
             </button>
-            <button onClick={toggleSidebar} className="hidden md:inline-flex btn btn-secondary btn-sm btn-icon md:w-auto md:px-3" title="Hide the list">
-              <span className="text-lg leading-none md:hidden">✕</span>
-              <span className="hidden md:inline">{t('nav.hide')}</span>
+            <button
+              onClick={toggleSidebar}
+              className="hidden md:inline-flex btn btn-secondary btn-sm btn-icon"
+              title={t('nav.hide')}
+              aria-label={t('nav.hide')}
+            >
+              <span className="text-sm leading-none font-bold">⇤</span>
             </button>
           </div>
         </div>
 
-        {/* New entry — DESKTOP ONLY (2026-08-08). On a phone this was the third
-            way to start writing, on top of the capture FAB (P2) and the welcome
-            dashboard's own "+ New entry": it sat in the hardest-to-reach corner
-            (the exact complaint Part II §8 opens with), and — since the phone
-            sidebar hosts every tab — it also appeared on Settings and Data,
-            where writing makes no sense. The FAB and the welcome card cover it. */}
-        <div className="hidden md:block mb-3">
+        {/* New entry — DESKTOP ONLY (2026-08-08). */}
+        <div className="hidden md:block mb-2.5">
           <button
             onClick={() => startComposing('journal')}
-            className={`btn btn-primary btn-block btn-lg ${composing === 'journal' ? 'ring-2 ring-terracotta ring-offset-1' : ''}`}
+            className={`btn btn-primary btn-block py-2 text-sm font-semibold shadow-sm ${composing === 'journal' ? 'ring-2 ring-terracotta ring-offset-1' : ''}`}
           >
             ＋ {t('nav.newEntry')}
           </button>
         </div>
 
         {/* View tabs — desktop only; a phone navigates via BottomTabBar.tsx instead. */}
-        <div ref={containerRef} className="hidden md:relative md:flex gap-1.5 mb-2">
+        <div ref={containerRef} className="hidden md:relative md:flex gap-1 mb-0.5">
           {rect && activeTabIndex >= 0 && (
             <span
               className="sidebar-tab-underline"
@@ -149,7 +138,7 @@ export default function Sidebar() {
               key={v}
               ref={v === view ? activeRef : undefined}
               onClick={() => setActiveTab(v)}
-              className={`btn btn-sm flex-1 capitalize ${view === v ? 'btn-active' : 'btn-secondary'}`}
+              className={`btn btn-sm flex-1 capitalize text-xs ${view === v ? 'btn-active' : 'btn-secondary'}`}
             >
               {t(VIEW_LABELS[v])}
             </button>

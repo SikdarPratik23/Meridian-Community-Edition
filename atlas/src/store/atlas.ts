@@ -126,6 +126,8 @@ interface AtlasState {
   /** Current wind speed (km/h) from the welcome weather lookup, shared so the
    *  backdrop can sway trees/grass and slant particles. null = unknown. */
   windKph: number | null;
+  /** Current wind direction in degrees (0..360) from weather lookup. null = unknown. */
+  windDir: number | null;
   /** Current time-of-day phase from the day/night cycle, published by the
    *  background so the welcome text can stay legible against a night sky. */
   dayPhase: SkyPhase;
@@ -181,6 +183,7 @@ interface AtlasState {
   setWeatherCode: (code: number | null) => void;
   setCoords: (coords: { lat: number; lon: number } | null) => void;
   setWindKph: (kph: number | null) => void;
+  setWindDir: (dir: number | null) => void;
   setDayPhase: (phase: SkyPhase) => void;
   setNearbyPois: (pois: NearbyPlace[] | null) => void;
   addOrUpdateEvent: (event: AnyEvent) => void;
@@ -203,6 +206,7 @@ export const useAtlasStore = create<AtlasState>((set, get) => ({
   weatherCode: null,
   coords: null,
   windKph: null,
+  windDir: null,
   // Seed from the clock so the night treatment is right on first paint; the
   // background refines it from real coordinates once they're known.
   dayPhase: skyPhase(new Date(), null, null),
@@ -327,6 +331,7 @@ export const useAtlasStore = create<AtlasState>((set, get) => ({
   setWeatherCode: (code) => set({ weatherCode: code }),
   setCoords: (coords) => set({ coords }),
   setWindKph: (kph) => set((s) => (s.windKph === kph ? s : { windKph: kph })),
+  setWindDir: (dir) => set((s) => (s.windDir === dir ? s : { windDir: dir })),
   setDayPhase: (phase) => set((s) => (s.dayPhase === phase ? s : { dayPhase: phase })),
   setNearbyPois: (pois) => set({ nearbyPois: pois }),
 

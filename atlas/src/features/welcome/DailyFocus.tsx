@@ -123,7 +123,7 @@ export default function DailyFocus({ className = '' }: { className?: string }) {
   };
 
   return (
-    <div className={`welcome-card-land rounded-xl border border-water p-4 animate-card-in ${className}`}>
+    <div className={`welcome-card-land select-none cursor-default rounded-xl border border-water p-4 animate-card-in ${className}`}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-ink/55">Today's focus</span>
         <div className="flex items-center gap-1.5">
@@ -133,13 +133,13 @@ export default function DailyFocus({ className = '' }: { className?: string }) {
             <div className="flex rounded-full border border-water p-0.5 text-[10px] font-medium">
               <button
                 onClick={() => setPreferred('prompt')}
-                className={`rounded-full px-2 py-0.5 transition-colors ${mode === 'prompt' ? 'bg-terracotta text-white' : 'text-ink/55 hover:text-ink'}`}
+                className={`rounded-full px-2 py-0.5 cursor-pointer pointer-events-auto transition-colors ${mode === 'prompt' ? 'bg-terracotta text-white' : 'text-ink/55 hover:text-ink'}`}
               >
                 Prompt
               </button>
               <button
                 onClick={() => setPreferred('place')}
-                className={`rounded-full px-2 py-0.5 transition-colors ${mode === 'place' ? 'bg-terracotta text-white' : 'text-ink/55 hover:text-ink'}`}
+                className={`rounded-full px-2 py-0.5 cursor-pointer pointer-events-auto transition-colors ${mode === 'place' ? 'bg-terracotta text-white' : 'text-ink/55 hover:text-ink'}`}
               >
                 Place
               </button>
@@ -147,7 +147,7 @@ export default function DailyFocus({ className = '' }: { className?: string }) {
           )}
           <button
             onClick={reshuffle}
-            className="icon-spin text-ink/40 hover:text-terracotta text-sm leading-none"
+            className="icon-spin text-ink/40 hover:text-terracotta text-sm leading-none cursor-pointer pointer-events-auto"
             title={mode === 'prompt' ? 'Another prompt' : 'Another place'}
             aria-label={mode === 'prompt' ? 'Show another prompt' : 'Show another place'}
           >
@@ -176,7 +176,7 @@ export default function DailyFocus({ className = '' }: { className?: string }) {
               href={place.url}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-block text-xs font-medium text-terracotta hover:underline"
+              className="mt-2 inline-block text-xs font-medium text-terracotta hover:underline cursor-pointer pointer-events-auto"
             >
               Read on Wikipedia ↗
             </a>
@@ -195,7 +195,7 @@ export default function DailyFocus({ className = '' }: { className?: string }) {
         <div>
           <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-terracotta">Today's prompt</div>
           <p className="font-serif text-lg italic leading-relaxed text-ink/80">{prompt}</p>
-          <button onClick={() => startComposing('journal')} className="btn btn-primary btn-sm mt-3">
+          <button onClick={() => startComposing('journal')} className="btn btn-primary btn-sm mt-3 cursor-pointer pointer-events-auto">
             ✍ Write about this
           </button>
         </div>
